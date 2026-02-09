@@ -1,0 +1,16 @@
+# roles/monitoring_stack/templates/dashboards-provider.yml.j2
+# Grafana의 대시보드 프로비저닝 설정 파일
+apiVersion: 1
+
+providers:
+  - name: 'Default Dashboard Provider' # 프로바이더 이름
+    orgId: 1
+    folder: 'General'                  # 대시보드가 저장될 기본 폴더 이름
+    type: file
+    disableDeletion: false             # 웹 UI에서 삭제 허용 여부
+    editable: true                     # 웹 UI에서 수정 허용 여부
+    options:
+      # 도커 컴포즈에서 볼륨으로 연결한 컨테이너 내부 경로
+      path: /var/lib/grafana/dashboards
+      # 하위 폴더까지 탐색하여 JSON 파일을 읽어올지 여부
+      foldersFromFilesStructure: true

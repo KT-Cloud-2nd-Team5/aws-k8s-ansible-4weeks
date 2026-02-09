@@ -1,0 +1,9 @@
+# roles/monitoring_stack/handlers/main.yml
+---
+# 'reload monitoring'이라는 이름의 신호를 받았을 때 실행
+- name: reload monitoring
+  community.docker.docker_compose_v2:
+    project_src: "{{ monitoring_dir }}"
+    state: restarted
+  become: yes
+  # 이 핸들러는 여러 태스크에서 호출해도 플레이북 마지막에 딱 한 번만 실행됩니다.

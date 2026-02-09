@@ -1,0 +1,57 @@
+# roles/monitoring_stack/tasks/main.yml
+---
+- name: 기존 프로비저닝 폴더 초기화
+  file:
+    path: "{{ monitoring_dir }}/provisioning"
+    state: absent
+    
+# 모니터링 스택을 위한 디렉토리 구조 생성
+- name: 모니터링 디렉토리 구조 생성
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0755'
+    
+  loop:
+    - "{{ monitoring_dir }}"
+    - "{{ monitoring_dir }}/provisioning/datasources"
+    - "{{ monitoring_dir }}/provisioning/dashboards"
+    - "{{ monitoring_dir }}/provisioning/alerting"
+    - "{{ monitoring_dir }}/dashboards"
+
+# 모든 설정 파일 템플릿 배포 (중복 제거 및 통합)
+- name: 모니터링 설정 파일 배포
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ monitoring_dir }}/{{ item.dest }}"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0644'
+  loop:
+    - { src: 'docker-compose.yml.j2', dest: 'docker-compose.yml' }
+    - { src: 'prometheus.yml.j2', dest: 'prometheus.yml' }
+    - { src: 'datasource.yml.j2', dest: 'provisioning/datasources/datasource.yml' }
+    - { src: 'dashboards-provider.yml.j2', dest: 'provisioning/dashboards/provider.yml' }
+    - { src: 'alerting.yml.j2', dest: 'provisioning/alerting/alerting.yml' }
+  notify: "reload monitoring"
+
+# 4. Grafana 공식 대시보드 다운로드
+- name: Grafana Labs에서 공식 대시보드 다운로드
+  get_url:
+    url: "https://grafana.com/api/dashboards/{{ item.id }}/revisions/{{ item.revision }}/download"
+    dest: "{{ monitoring_dir }}/dashboards/dashboard-{{ item.id }}.json"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+  loop: "{{ dashboard_ids }}"
+  notify: "reload monitoring"
+
+# 5. 도커 컴포즈를 이용한 스택 실행
+- name: 통합 모니터링 스택 실행
+  community.docker.docker_compose_v2:
+    project_src: "{{ monitoring_dir }}"
+    state: present
+  become: yes
+
+
