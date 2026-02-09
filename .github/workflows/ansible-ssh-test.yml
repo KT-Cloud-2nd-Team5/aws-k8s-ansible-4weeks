@@ -27,7 +27,7 @@ jobs:
       # (임시) 단일 노드 SSH 테스트
       - name: Test SSH to master
         run: |
-          ssh -o StrictHostKeyChecking=no ubuntu@<MASTER_PRIVATE_IP> "hostname"
+          ssh -o StrictHostKeyChecking=no ubuntu@10.0.2.7 "hostname"
 
       - name: Ansible ping test
         run: |
