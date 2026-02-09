@@ -1,0 +1,13 @@
+# roles/monitoring_stack/templates/datasource.yml.j2
+# Grafana의 데이터 소스 프로비저닝 설정 파일
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    type: prometheus
+    uid: "my-prometheus"
+    url: http://prometheus:9090
+    access: proxy
+    isDefault: true
+    jsonData:
+      httpMethod: POST
+      timeInterval: "30s"

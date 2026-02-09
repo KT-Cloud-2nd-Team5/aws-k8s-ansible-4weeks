@@ -1,0 +1,21 @@
+# group_vars/monitoring_server.yml
+---
+target_user: "ubuntu" 
+monitoring_dir: "/home/{{ target_user }}/monitoring"
+
+# 그라파나(Grafana)
+grafana_admin_password: "admin"  # 실제 사용할 비번
+grafana_port: 3000
+
+# 프로메테우스(Prometheus)
+prometheus_retention_time: "1d"
+prometheus_retention_size: "1GB"
+prometheus_port: 9090
+
+# 자동 다운로드할 대시보드 정보
+dashboard_ids:
+  - { id: 1860, revision: 31 }   #Node Exporter Full
+  - { id: 16378, revision: 1 }    #Node Exporter Nodes
+  - { id: 14057, revision: 1 }     #MySQL Overview
+# Discord 또는 Slack에서 만든 Webhook URL
+alert_webhook_url: "https://discord.com/api/webhooks/your-id-here"
