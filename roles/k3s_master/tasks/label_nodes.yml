@@ -1,0 +1,20 @@
+- name: Wait until nodes are visible
+  become: true
+  shell: |
+    set -e
+    for i in {1..40}; do
+      /usr/local/bin/k3s kubectl get nodes >/dev/null 2>&1 && exit 0
+      sleep 3
+    done
+    exit 1
+
+- name: Label master node
+  become: true
+  shell: |
+    /usr/local/bin/k3s kubectl label node {{ inventory_hostname }} node-role=master --overwrite
+
+- name: Label worker nodes based on inventory var node_role
+  become: true
+  loop: "{{ groups['workers'] }}"
+  shell: |
+    /usr/local/bin/k3s kubectl label node {{ item }} node-role={{ hostvars[item].node_role }} --overwrite

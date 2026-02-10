@@ -1,0 +1,19 @@
+- name: Install K3s server on master
+  become: true
+  shell: |
+    curl -sfL https://get.k3s.io | sh -s - server --write-kubeconfig-mode 644
+  args:
+    creates: /usr/local/bin/k3s
+
+- name: Read join token (master)
+  become: true
+  slurp:
+    src: /var/lib/rancher/k3s/server/node-token
+  register: token_raw
+
+- name: Set k3s_token fact (master)
+  set_fact:
+    k3s_token: "{{ token_raw.content | b64decode | trim }}"
+
+- name: Label nodes (web/master/db)
+  include_tasks: label_nodes.yml
