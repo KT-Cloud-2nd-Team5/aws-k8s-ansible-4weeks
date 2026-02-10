@@ -1,4 +1,7 @@
-- name: Install K3s server on master (idempotent + log)
+---
+# roles/k3s_master/tasks/main.yml
+
+- name: Install K3s server on master (always write log to /tmp)
   become: true
   environment:
     http_proxy: "{{ http_proxy | default(omit) }}"
@@ -6,10 +9,22 @@
     no_proxy: "{{ no_proxy | default(omit) }}"
   shell: |
     set -eu
-    curl -sfL https://get.k3s.io -o /tmp/k3s_install.sh
-    chmod +x /tmp/k3s_install.sh
-    INSTALL_K3S_EXEC="server --write-kubeconfig-mode 644" \
-      /tmp/k3s_install.sh > /var/log/k3s-install.log 2>&1
+
+    # 로그 파일은 무조건 먼저 만든다(빈 파일이라도 생성)
+    : > /tmp/k3s-install.log
+
+    # 설치 스크립트 다운로드/권한
+    curl -sfL https://get.k3s.io -o /tmp/k3s_install.sh >> /tmp/k3s-install.log 2>&1
+    chmod +x /tmp/k3s_install.sh >> /tmp/k3s-install.log 2>&1
+
+    # 설치 실행(실패해도 rc를 저장)
+    set +e
+    INSTALL_K3S_EXEC="server --write-kubeconfig-mode 644" /tmp/k3s_install.sh >> /tmp/k3s-install.log 2>&1
+    rc=$?
+    set -e
+
+    echo "K3S_INSTALL_RC=${rc}" >> /tmp/k3s-install.log
+    exit $rc
   args:
     executable: /bin/bash
     creates: /usr/local/bin/k3s
@@ -20,15 +35,16 @@
   become: true
   shell: |
     echo "===== k3s_install.rc={{ k3s_install.rc | default('N/A') }} ====="
-    echo "===== /var/log/k3s-install.log (tail 200) ====="
-    tail -n 200 /var/log/k3s-install.log || true
+    echo "===== /tmp/k3s-install.log (tail 200) ====="
+    tail -n 200 /tmp/k3s-install.log || true
   args:
     executable: /bin/bash
   changed_when: false
   when: k3s_install is failed
 
-- name: Stop play if K3s install failed
-  meta: end_play
+- name: Fail if K3s install failed
+  fail:
+    msg: "K3s server install failed on master. See /tmp/k3s-install.log output above."
   when: k3s_install is failed
 
 - name: Wait until node-token exists
