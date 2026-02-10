@@ -1,0 +1,20 @@
+---
+- name: Setup Monitoring Stack on Bastion
+  hosts: bastion
+  become: true
+  
+  roles:
+    - role: docker
+    # - role: helm
+    - role: monitoring_stack
+
+- name: Setup MySQL Exporter on DB Node
+  hosts: workers
+  become: true
+  
+  tasks:
+    - name: Run mysql_exporter role only on db nodes
+      include_role:
+        name: mysql_exporter
+      when: node_role == 'db'
+
