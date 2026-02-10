@@ -1,41 +1,31 @@
-# roles/monitoring_stack/templates/prometheus.yml.j2
 global:
-  scrape_interval: 30s     # 메트릭 수집 주기 (기본 15초)
-  evaluation_interval: 30s # 알람 규칙 평가 주기
-  
-  # 외부 시스템에서 이 서버를 식별할 때 사용하는 레이블
+  scrape_interval: 30s
+  evaluation_interval: 30s
   external_labels:
     monitor: 'monitoring-server'
 
-# 메트릭 수집 설정
 scrape_configs:
-  # 자체 메트릭 수집
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
 
-  # 노드 익스포터 리소스 모니터링 (Node Exporter)
   - job_name: 'node-exporter'
     static_configs:
       - targets: ['node-exporter:9100']
         labels:
           instance: 'monitoring-server'
-          
-# 2. 타겟 서버들 (있는 경우에만 생성)
-{% if groups['target_servers'] is defined and groups['target_servers'] | length > 0 %}
-      - targets: 
+{% if groups['target_servers'] is defined %}
+      - targets:
 {% for host in groups['target_servers'] %}
-        - "{{ host }}:9100"
+        - "{{ hostvars[host].ansible_host }}:9100"
 {% endfor %}
 {% endif %}
 
-# MySQL Exporter 타겟 추가
   - job_name: 'mysql'
     static_configs:
-      {% if groups['db_server'] is defined and groups['db_server'] | length > 0 %}
+{% if groups['db_server'] is defined %}
       - targets:
-        {% for host in groups['db_server'] %}
-        - "{{ hostvars[host]['ansible_host'] | default(host) }}:9104"
-        {% endfor %}
-      {% endif %}
-
+{% for host in groups['db_server'] %}
+        - "{{ hostvars[host].ansible_host }}:30104"
+{% endfor %}
+{% endif %}
