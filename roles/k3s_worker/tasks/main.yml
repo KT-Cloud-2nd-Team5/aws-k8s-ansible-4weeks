@@ -1,6 +1,11 @@
 - name: Install K3s agent and join cluster
   become: true
+  environment:
+    http_proxy: "{{ http_proxy | default(omit) }}"
+    https_proxy: "{{ https_proxy | default(omit) }}"
+    no_proxy: "{{ no_proxy | default(omit) }}"
   shell: |
+    set -euo pipefail
     curl -sfL https://get.k3s.io | \
       K3S_URL="https://{{ hostvars[groups['master'][0]].ansible_host }}:6443" \
       K3S_TOKEN="{{ hostvars[groups['master'][0]].k3s_token }}" \

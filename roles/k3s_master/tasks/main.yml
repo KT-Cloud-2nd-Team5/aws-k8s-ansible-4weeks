@@ -1,9 +1,21 @@
 - name: Install K3s server on master
   become: true
+  environment:
+    http_proxy: "{{ http_proxy | default(omit) }}"
+    https_proxy: "{{ https_proxy | default(omit) }}"
+    no_proxy: "{{ no_proxy | default(omit) }}"
   shell: |
+    set -euo pipefail
     curl -sfL https://get.k3s.io | sh -s - server --write-kubeconfig-mode 644
   args:
     creates: /usr/local/bin/k3s
+
+- name: Wait until node-token exists
+  become: true
+  wait_for:
+    path: /var/lib/rancher/k3s/server/node-token
+    state: present
+    timeout: 180
 
 - name: Read join token from master
   become: true
@@ -24,3 +36,4 @@
       sleep 3
     done
     exit 1
+  changed_when: false
