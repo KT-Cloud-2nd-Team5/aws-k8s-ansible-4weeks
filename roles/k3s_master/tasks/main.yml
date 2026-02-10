@@ -1,51 +1,32 @@
 ---
 # roles/k3s_master/tasks/main.yml
 
-- name: Install K3s server on master (always write log to /tmp)
+- name: Install K3s server on master (force proxy inside shell)
   become: true
-  environment:
-    http_proxy: "{{ http_proxy | default(omit) }}"
-    https_proxy: "{{ https_proxy | default(omit) }}"
-    no_proxy: "{{ no_proxy | default(omit) }}"
   shell: |
     set -eu
 
-    # 로그 파일은 무조건 먼저 만든다(빈 파일이라도 생성)
-    : > /tmp/k3s-install.log
+    # master는 프록시 필요(강제)
+    PROXY="http://10.0.1.74:3128"
+    NO_PROXY_LIST="127.0.0.1,localhost,10.0.0.0/16,10.0.2.235,.svc,.cluster.local"
 
-    # 설치 스크립트 다운로드/권한
-    curl -sfL https://get.k3s.io -o /tmp/k3s_install.sh >> /tmp/k3s-install.log 2>&1
-    chmod +x /tmp/k3s_install.sh >> /tmp/k3s-install.log 2>&1
+    # sudo/become가 env를 날려도 상관없게 쉘 내부에서 강제 export
+    export http_proxy="${PROXY}"
+    export https_proxy="${PROXY}"
+    export HTTP_PROXY="${PROXY}"
+    export HTTPS_PROXY="${PROXY}"
+    export no_proxy="${NO_PROXY_LIST}"
+    export NO_PROXY="${NO_PROXY_LIST}"
 
-    # 설치 실행(실패해도 rc를 저장)
-    set +e
-    INSTALL_K3S_EXEC="server --write-kubeconfig-mode 644" /tmp/k3s_install.sh >> /tmp/k3s-install.log 2>&1
-    rc=$?
-    set -e
+    # 스크립트 다운로드: proxy 강제 + IPv4 강제
+    curl -4 --proxy "${PROXY}" -fL https://get.k3s.io -o /tmp/k3s_install.sh
+    chmod +x /tmp/k3s_install.sh
 
-    echo "K3S_INSTALL_RC=${rc}" >> /tmp/k3s-install.log
-    exit $rc
+    # 설치 실행
+    INSTALL_K3S_EXEC="server --write-kubeconfig-mode 644" /tmp/k3s_install.sh
   args:
     executable: /bin/bash
     creates: /usr/local/bin/k3s
-  register: k3s_install
-  ignore_errors: true
-
-- name: Show K3s install log (master) when failed
-  become: true
-  shell: |
-    echo "===== k3s_install.rc={{ k3s_install.rc | default('N/A') }} ====="
-    echo "===== /tmp/k3s-install.log (tail 200) ====="
-    tail -n 200 /tmp/k3s-install.log || true
-  args:
-    executable: /bin/bash
-  changed_when: false
-  when: k3s_install is failed
-
-- name: Fail if K3s install failed
-  fail:
-    msg: "K3s server install failed on master. See /tmp/k3s-install.log output above."
-  when: k3s_install is failed
 
 - name: Wait until node-token exists
   become: true
@@ -79,3 +60,4 @@
   args:
     executable: /bin/bash
   changed_when: false
+

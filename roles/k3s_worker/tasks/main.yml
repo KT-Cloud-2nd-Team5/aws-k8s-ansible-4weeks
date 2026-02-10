@@ -1,34 +1,36 @@
-- name: Install K3s agent and join cluster (idempotent + log)
+---
+# roles/k3s_worker/tasks/main.yml
+
+- name: Install K3s agent and join cluster (proxy forced only when needed)
   become: true
-  environment:
-    http_proxy: "{{ http_proxy | default(omit) }}"
-    https_proxy: "{{ https_proxy | default(omit) }}"
-    no_proxy: "{{ no_proxy | default(omit) }}"
   shell: |
     set -eu
-    curl -sfL https://get.k3s.io -o /tmp/k3s_install.sh
+
+    # group_vars/db.yml 에 proxy_url이 있으면 db만 프록시 사용, web은 미사용
+    PROXY="{{ proxy_url | default('') }}"
+    NO_PROXY_LIST="127.0.0.1,localhost,10.0.0.0/16,{{ hostvars[groups['master'][0]].ansible_host }},.svc,.cluster.local"
+
+    if [ -n "${PROXY}" ]; then
+      export http_proxy="${PROXY}"
+      export https_proxy="${PROXY}"
+      export HTTP_PROXY="${PROXY}"
+      export HTTPS_PROXY="${PROXY}"
+      export no_proxy="${NO_PROXY_LIST}"
+      export NO_PROXY="${NO_PROXY_LIST}"
+      CURL_PROXY_OPT="--proxy ${PROXY} -4"
+    else
+      CURL_PROXY_OPT=""
+    fi
+
+    # 설치 스크립트 다운로드 (db면 proxy+ipv4 강제, web이면 직통)
+    curl ${CURL_PROXY_OPT} -fL https://get.k3s.io -o /tmp/k3s_install.sh
     chmod +x /tmp/k3s_install.sh
+
+    # 조인
+    K3S_URL="https://{{ hostvars[groups['master'][0]].ansible_host }}:6443" \
+    K3S_TOKEN="{{ hostvars[groups['master'][0]].k3s_token }}" \
     INSTALL_K3S_EXEC="agent" \
-      K3S_URL="https://{{ hostvars[groups['master'][0]].ansible_host }}:6443" \
-      K3S_TOKEN="{{ hostvars[groups['master'][0]].k3s_token }}" \
-      /tmp/k3s_install.sh > /var/log/k3s-agent-install.log 2>&1
+      /tmp/k3s_install.sh
   args:
     executable: /bin/bash
     creates: /usr/local/bin/k3s-agent
-  register: k3s_agent_install
-  ignore_errors: true
-
-- name: Show K3s agent install log (worker) when failed
-  become: true
-  shell: |
-    echo "===== k3s_agent_install.rc={{ k3s_agent_install.rc | default('N/A') }} ====="
-    echo "===== /var/log/k3s-agent-install.log (tail 200) ====="
-    tail -n 200 /var/log/k3s-agent-install.log || true
-  args:
-    executable: /bin/bash
-  changed_when: false
-  when: k3s_agent_install is failed
-
-- name: Stop play for this host if K3s agent install failed
-  meta: end_host
-  when: k3s_agent_install is failed
