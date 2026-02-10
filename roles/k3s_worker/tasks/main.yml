@@ -1,15 +1,34 @@
-- name: Install K3s agent and join cluster
+- name: Install K3s agent and join cluster (idempotent + log)
   become: true
   environment:
     http_proxy: "{{ http_proxy | default(omit) }}"
     https_proxy: "{{ https_proxy | default(omit) }}"
     no_proxy: "{{ no_proxy | default(omit) }}"
   shell: |
-    set -euo pipefail
-    curl -sfL https://get.k3s.io | \
+    set -eu
+    curl -sfL https://get.k3s.io -o /tmp/k3s_install.sh
+    chmod +x /tmp/k3s_install.sh
+    INSTALL_K3S_EXEC="agent" \
       K3S_URL="https://{{ hostvars[groups['master'][0]].ansible_host }}:6443" \
       K3S_TOKEN="{{ hostvars[groups['master'][0]].k3s_token }}" \
-      sh -
+      /tmp/k3s_install.sh > /var/log/k3s-agent-install.log 2>&1
   args:
     executable: /bin/bash
     creates: /usr/local/bin/k3s-agent
+  register: k3s_agent_install
+  ignore_errors: true
+
+- name: Show K3s agent install log (worker) when failed
+  become: true
+  shell: |
+    echo "===== k3s_agent_install.rc={{ k3s_agent_install.rc | default('N/A') }} ====="
+    echo "===== /var/log/k3s-agent-install.log (tail 200) ====="
+    tail -n 200 /var/log/k3s-agent-install.log || true
+  args:
+    executable: /bin/bash
+  changed_when: false
+  when: k3s_agent_install is failed
+
+- name: Stop play for this host if K3s agent install failed
+  meta: end_host
+  when: k3s_agent_install is failed
