@@ -1,7 +1,0 @@
----
-- name: Apply common configuration to ALL nodes
-  hosts: all
-  become: true
-  
-  roles:
-    - role: node_exporter
