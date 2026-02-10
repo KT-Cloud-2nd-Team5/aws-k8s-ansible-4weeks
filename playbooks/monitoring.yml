@@ -1,0 +1,18 @@
+---
+- name: 모니터링 서버 구축 (Docker + Prometheus + Grafana)
+  hosts: monitoring_server
+  roles:
+    - role: docker
+    - role: monitoring_stack
+    
+- name: 타겟 서버들에 Node Exporter 설치
+  hosts: target_servers
+  become: yes
+  roles:
+    - node_exporter
+    
+- name: DB 서버에 mysql_exporter 설치
+  hosts: db_server
+  become: yes
+  roles:
+    - role: mysql_exporter
