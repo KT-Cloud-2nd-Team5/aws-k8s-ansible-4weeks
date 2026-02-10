@@ -1,15 +1,48 @@
-- name: Install K3s server on master
+---
+# roles/k3s_master/tasks/main.yml
+
+- name: Install K3s server on master (force proxy inside shell)
   become: true
   shell: |
-    curl -sfL https://get.k3s.io | sh -s - server --write-kubeconfig-mode 644
+    set -eu
+
+    # master는 프록시 필요(강제)
+    PROXY="http://10.0.1.74:3128"
+    NO_PROXY_LIST="127.0.0.1,localhost,10.0.0.0/16,10.0.2.235,.svc,.cluster.local"
+
+    # sudo/become가 env를 날려도 상관없게 쉘 내부에서 강제 export
+    export http_proxy="${PROXY}"
+    export https_proxy="${PROXY}"
+    export HTTP_PROXY="${PROXY}"
+    export HTTPS_PROXY="${PROXY}"
+    export no_proxy="${NO_PROXY_LIST}"
+    export NO_PROXY="${NO_PROXY_LIST}"
+
+    # 스크립트 다운로드: proxy 강제 + IPv4 강제
+    curl -4 --proxy "${PROXY}" -fL https://get.k3s.io -o /tmp/k3s_install.sh
+    chmod +x /tmp/k3s_install.sh
+
+    # 설치 실행
+    INSTALL_K3S_EXEC="server --write-kubeconfig-mode 644" /tmp/k3s_install.sh
   args:
+    executable: /bin/bash
     creates: /usr/local/bin/k3s
+
+- name: Wait until node-token exists
+  become: true
+  wait_for:
+    path: /var/lib/rancher/k3s/server/node-token
+    state: present
+    timeout: 180
 
 - name: Read join token from master
   become: true
   slurp:
     src: /var/lib/rancher/k3s/server/node-token
   register: token_raw
+  retries: 10
+  delay: 3
+  until: token_raw is succeeded
 
 - name: Store token as fact (master)
   set_fact:
@@ -24,3 +57,7 @@
       sleep 3
     done
     exit 1
+  args:
+    executable: /bin/bash
+  changed_when: false
+

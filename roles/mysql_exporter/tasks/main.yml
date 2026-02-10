@@ -1,0 +1,45 @@
+---
+# 1. 인프라 필수 패키지 설치
+#  앤서블이 K8s를 조작하기 위한 파이썬 라이브러리와 디버깅용 net-tools 설치
+- name: Install system dependencies
+  apt:
+    name: [python3-kubernetes, python3-yaml, net-tools]
+    state: present
+    update_cache: yes
+
+# 2. Helm 배포 (기본 배포 담당)
+- name: Deploy via Helm
+  kubernetes.core.helm:
+    name: "{{ release_name }}"
+    chart_ref: prometheus-community/prometheus-mysql-exporter
+    release_namespace: "{{ my_ns }}"
+    create_namespace: yes
+    #  k3s는 설정 파일 경로가 다르므로 직접 명시
+    kubeconfig: /etc/rancher/k3s/k3s.yaml
+    values:
+      mysql:
+        user: "{{ mysql_user }}"
+        pass: "{{ mysql_password }}"
+        host: "{{ mysql_host }}"
+        port: "{{ mysql_port }}"
+      #  외부 노출을 위해 서비스 타입을 NodePort로 설정
+      service:
+        type: NodePort
+
+
+# 3. 서비스 포트 강제 고정 (Patch)
+- name: Force fix NodePort to {{ target_node_port }}
+  kubernetes.core.k8s:
+    state: patched
+    kind: Service
+    name: "{{ release_name }}-prometheus-mysql-exporter"
+    namespace: "{{ my_ns }}"
+    kubeconfig: /etc/rancher/k3s/k3s.yaml
+    definition:
+      spec:
+        ports:
+          - name: mysql-exporter
+            port: 9104
+            nodePort: "{{ target_node_port | int }}"
+            protocol: TCP
+            targetPort: 9104  #

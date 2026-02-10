@@ -1,0 +1,6 @@
+http_proxy: "http://10.0.1.74:3128"
+https_proxy: "http://10.0.1.74:3128"
+no_proxy: "127.0.0.1,localhost,10.0.0.0/16,10.0.2.235,.svc,.cluster.local"
+
+#  tasks/main.yml에서 이 이름을 찾고 있으므로 추가
+proxy_url: "http://10.0.1.74:3128"
