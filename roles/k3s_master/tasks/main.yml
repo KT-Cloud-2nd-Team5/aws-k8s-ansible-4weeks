@@ -8,6 +8,7 @@
     set -euo pipefail
     curl -sfL https://get.k3s.io | sh -s - server --write-kubeconfig-mode 644
   args:
+    executable: /bin/bash
     creates: /usr/local/bin/k3s
 
 - name: Wait until node-token exists
@@ -22,6 +23,9 @@
   slurp:
     src: /var/lib/rancher/k3s/server/node-token
   register: token_raw
+  retries: 10
+  delay: 3
+  until: token_raw is succeeded
 
 - name: Store token as fact (master)
   set_fact:
@@ -36,4 +40,6 @@
       sleep 3
     done
     exit 1
+  args:
+    executable: /bin/bash
   changed_when: false

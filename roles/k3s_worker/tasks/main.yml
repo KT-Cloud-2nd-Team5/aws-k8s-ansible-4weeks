@@ -11,4 +11,5 @@
       K3S_TOKEN="{{ hostvars[groups['master'][0]].k3s_token }}" \
       sh -
   args:
+    executable: /bin/bash
     creates: /usr/local/bin/k3s-agent
