@@ -1,4 +1,4 @@
-- name: Install K3s server on master
+- name: Install K3s server on master (with log)
   become: true
   environment:
     http_proxy: "{{ http_proxy | default(omit) }}"
@@ -6,11 +6,22 @@
     no_proxy: "{{ no_proxy | default(omit) }}"
   shell: |
     set -euo pipefail
-    curl -sfL https://get.k3s.io | sh -s - server --write-kubeconfig-mode 644
+    curl -sfL https://get.k3s.io -o /tmp/k3s_install.sh
+    chmod +x /tmp/k3s_install.sh
+    INSTALL_K3S_EXEC="server --write-kubeconfig-mode 644" /tmp/k3s_install.sh 2>&1 | tee /var/log/k3s-install.log
   args:
     executable: /bin/bash
     creates: /usr/local/bin/k3s
 
+- name: Show K3s install log (master)
+  become: true
+  shell: |
+    tail -n 200 /var/log/k3s-install.log || true
+  args:
+    executable: /bin/bash
+  changed_when: false
+  failed_when: false
+  
 - name: Wait until node-token exists
   become: true
   wait_for:
