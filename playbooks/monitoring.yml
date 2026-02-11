@@ -1,18 +1,35 @@
 ---
-- name: 모니터링 서버 구축 (Docker + Prometheus + Grafana)
+# 1. 모니터링 서버 IP를 미리 계산 (전역 변수화)
+- name: 변수 초기화
+  hosts: all
+  tasks:
+    - name: 중앙 서버 IP 고정
+      set_fact:
+        # hostvars에서 실제 IP(ansible_host)를 추출하되, 없을 경우 인벤토리 이름을 할당
+        target_central_ip: "{{ hostvars[groups['monitoring_server'][0]]['ansible_host'] | default(groups['monitoring_server'][0]) }}"
+      run_once: true
+      # 이 변수를 모든 호스트(db_server, nginx_servers)가 공유할 수 있도록 강제 설정
+      delegate_to: localhost
+      delegate_facts: false
+
+# 2. 중앙 서버 구축 (Docker)
+- name: 중앙 모니터링 서버 구축
   hosts: monitoring_server
   roles:
-    - role: docker
-    - role: monitoring_stack
-    
-- name: 타겟 서버들에 Node Exporter 설치
-  hosts: target_servers
-  become: yes
+    - docker
+    - monitoring_stack
+
+# 3. 타겟 서버들 공통 설정 (DB, Nginx 통합)
+- name: 타겟 서버 모니터링 설정
+  hosts: db_server, nginx_servers
+  become: true
+  vars:
+    my_ns: "monitoring"
   roles:
-    - node_exporter
-    
-- name: DB 서버에 mysql_exporter 설치
-  hosts: db_server
-  become: yes
-  roles:
-    - role: mysql_exporter
+  
+    - role: prometheus_agent
+      central_prometheus_ip: "{{ hostvars['localhost']['target_central_ip'] if hostvars['localhost']['target_central_ip'] is defined else target_central_ip }}"
+
+  
+    - { role: mysql_exporter, when: "'db_server' in group_names" }
+    - { role: nginx_exporter, when: "'nginx_servers' in group_names" }
