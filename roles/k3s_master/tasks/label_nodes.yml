@@ -1,20 +1,25 @@
-- name: Wait until nodes are visible
-  become: true
-  shell: |
-    set -e
-    for i in {1..40}; do
-      /usr/local/bin/k3s kubectl get nodes >/dev/null 2>&1 && exit 0
-      sleep 3
-    done
-    exit 1
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - image_repo is defined
+      - image_tag is defined
+      - namespace is defined
+      - deploy_name is defined
+      - container_name is defined
+    fail_msg: "필수 변수(image_repo, image_tag, namespace, deploy_name, container_name)가 누락되었습니다."
 
-- name: Label master node
-  become: true
-  shell: |
-    /usr/local/bin/k3s kubectl label node {{ inventory_hostname }} node-role=master --overwrite
+- name: Update deployment image to SHA tag
+  ansible.builtin.command: >
+    kubectl -n {{ namespace }}
+    set image deployment/{{ deploy_name }}
+    {{ container_name }}={{ image_repo }}:{{ image_tag }}
+  register: set_image_result
+  changed_when: true
 
-- name: Label worker nodes based on inventory var node_role
-  become: true
-  loop: "{{ groups['workers'] }}"
-  shell: |
-    /usr/local/bin/k3s kubectl label node {{ item }} node-role={{ hostvars[item].node_role }} --overwrite
+- name: Wait for rollout to complete
+  ansible.builtin.command: >
+    kubectl -n {{ namespace }}
+    rollout status deployment/{{ deploy_name }} --timeout=180s
+  register: rollout_result
+  failed_when: rollout_result.rc != 0
+  changed_when: false
