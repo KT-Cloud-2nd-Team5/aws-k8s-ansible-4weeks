@@ -5,27 +5,12 @@ global:
     monitor: 'monitoring-server'
 
 scrape_configs:
+  # 중앙 서버 자기 자신의 메트릭만 수집
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
 
-  - job_name: 'node-exporter'
+  # (선택사항) 중앙 서버 노드 자체의 리소스도 보고 싶다면 유지
+  - job_name: 'monitoring-server-node'
     static_configs:
-      - targets: ['node-exporter:9100']
-        labels:
-          instance: 'monitoring-server'
-{% if groups['target_servers'] is defined %}
-      - targets:
-{% for host in groups['target_servers'] %}
-        - "{{ hostvars[host].ansible_host }}:9100"
-{% endfor %}
-{% endif %}
-
-  - job_name: 'mysql'
-    static_configs:
-{% if groups['db_server'] is defined %}
-      - targets:
-{% for host in groups['db_server'] %}
-        - "{{ hostvars[host].ansible_host }}:30104"
-{% endfor %}
-{% endif %}
+      - targets: ['host.docker.internal:9100']
