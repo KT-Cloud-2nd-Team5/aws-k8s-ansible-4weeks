@@ -17,12 +17,6 @@ jobs:
   ansible-site:
     runs-on: self-hosted  # AWS Bastion 서버에서 실행
 
-    # [핵심 수정 1] 명령어 실행 위치를 소스 코드가 있는 내부 폴더로 고정
-    # 이 설정 덕분에 더 이상 'Empty playbook' 에러가 나지 않습니다.
-    defaults:
-      run:
-        working-directory: ./aws-k8s-ansible-4weeks
-
     # workflow_run 트리거일 경우, CI가 성공했을 때만 실행
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
 
