@@ -1,0 +1,59 @@
+# DB는 일반적으로 StatefulSet이 맞지만,
+# 지금은 "노드 배치 및 이미지 pull 테스트" 목적이므로 Deployment 사용
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db-mysql                  # DB Deployment 이름
+  namespace: default
+spec:
+  replicas: 1                     # DB는 하나만 실행
+  selector:
+    matchLabels:
+      app: db-mysql
+  template:
+    metadata:
+      labels:
+        app: db-mysql
+    spec:
+      # DB 노드에만 배치되도록 설정
+      nodeSelector:
+        node-role: db
+
+      containers:
+        - name: mysql
+          image: mysql:8.0        # Docker Hub 공식 MySQL 이미지
+          ports:
+            - containerPort: 3306 # MySQL 기본 포트
+          env:
+            # root 비밀번호 설정 (운영에서는 Secret으로 분리해야 함)
+            - name: MYSQL_ROOT_PASSWORD
+              value: "rootpass1234"
+            # 초기 생성 데이터베이스
+            - name: MYSQL_DATABASE
+              value: "appdb"
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "400m"
+              memory: "512Mi"
+
+---
+# DB 내부 통신용 Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-mysql-svc
+  namespace: default
+spec:
+  selector:
+    app: db-mysql                 # 이 label을 가진 파드로 트래픽 전달
+  ports:
+    - name: mysql
+      port: 3306                  # 클러스터 내부 포트
+      targetPort: 3306            # 컨테이너 내부 포트
+  type: ClusterIP                 # 내부 전용
+
+
