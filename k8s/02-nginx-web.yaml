@@ -1,50 +1,47 @@
-# Deployment는 "여러 개의 동일한 파드"를 관리하는 컨트롤러
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: web-nginx                 # Deployment 이름
-  namespace: default              # 기본 네임스페이스에 배포
+  name: web-nginx                
+  namespace: default      
 spec:
-  replicas: 2                     # nginx 파드 2개 생성 (고가용성 테스트)
+  replicas: 2                     
   selector:
     matchLabels:
-      app: web-nginx              # 아래 template의 label과 일치해야 함
+      app: web-nginx              # deployment가 관리하는 라벨, 이 라벨을 가진 pod만 관리
   template:
     metadata:
       labels:
-        app: web-nginx            # Service가 이 label을 보고 트래픽 전달
+        app: web-nginx            # deployment가 생성하는 pod에 붙는 라벨
     spec:
-      # web 노드에만 배치하도록 강제
+      # 생성하는 pod를 web 노드에만 배치
       nodeSelector:
         node-role: web
 
       containers:
-        - name: nginx             # 컨테이너 이름
+        - name: nginx
           image: nginx:1.27       # Docker Hub의 nginx 공식 이미지
           ports:
-            - containerPort: 80   # 컨테이너 내부 포트
+            - containerPort: 80
           resources:
-            # 최소 보장 자원
             requests:
               cpu: "50m"
               memory: "64Mi"
-            # 최대 사용 가능 자원
             limits:
               cpu: "200m"
               memory: "128Mi"
 
 ---
-# Service는 파드에 안정적인 네트워크 접근 경로 제공
 apiVersion: v1
 kind: Service
 metadata:
-  name: web-nginx-svc             # 클러스터 내부 서비스 이름
+  name: web-nginx-svc 
   namespace: default
 spec:
   selector:
-    app: web-nginx                # 이 label을 가진 파드로 트래픽 전달
+    app: web-nginx                # service는 pod 이름 대신 label을 기준으로 트래픽을 전달
   ports:
     - name: http
       port: 80                    # 클러스터 내부에서 접근할 포트
       targetPort: 80              # 실제 컨테이너 포트
-  type: ClusterIP                 # 클러스터 내부에서만 접근 가능
+      nodePort: 30080            # 외부에서 접속할 포트
+  type: NodPort
