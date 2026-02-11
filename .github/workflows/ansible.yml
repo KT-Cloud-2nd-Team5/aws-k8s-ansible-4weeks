@@ -1,10 +1,6 @@
 name: Ansible CI/CD (Bastion Runner) # GitHub Actions 탭에 표시될 워크플로우 이름
 
 on:
-  workflow_run:
-    workflows: ["CI - Build & Push Docker Image"] # CI 워크플로우가 성공하면 자동으로 CD 실행
-    types: [completed]
-
   push:
     branches: ["main"] # main 브랜치에 코드가 push될 때 실행
     paths:             # 아래 폴더나 파일이 변경되었을 때만 실행 (불필요한 실행 방지)
@@ -41,8 +37,7 @@ jobs:
         with:
           # workflow_run이면 CI가 성공한 커밋(head_sha)으로 체크아웃을 고정
           # 그 외(push/workflow_dispatch)는 현재 실행 커밋으로 체크아웃
-          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
-
+          fetch-depth: 0 # 전체 히스토리를 가져와 파일 누락 방지
       - name: Load SSH key (ssh-agent)
         # 대상 서버들에 접속할 때 사용할 SSH 개인키를 메모리에 로드
         uses: webfactory/ssh-agent@v0.9.0
