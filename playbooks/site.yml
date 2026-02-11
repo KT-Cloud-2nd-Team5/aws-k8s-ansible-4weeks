@@ -1,2 +1,9 @@
+---
+# playbooks/site.yml
+# 목적: 전체 오케스트레이션(클러스터 구성 + 초기 매니페스트 적용)
+
+# 1) k3s 설치/조인(기존에 만들었던 k3s.yml이 실제로 존재해야 함)
 - import_playbook: k3s.yml
+
+# 2) k8s 매니페스트(nginx 등) 초기 apply
 - import_playbook: k8s_apply.yml
