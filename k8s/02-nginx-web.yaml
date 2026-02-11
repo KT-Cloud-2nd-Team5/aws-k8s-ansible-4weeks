@@ -1,0 +1,50 @@
+# Deployment는 "여러 개의 동일한 파드"를 관리하는 컨트롤러
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-nginx                 # Deployment 이름
+  namespace: default              # 기본 네임스페이스에 배포
+spec:
+  replicas: 2                     # nginx 파드 2개 생성 (고가용성 테스트)
+  selector:
+    matchLabels:
+      app: web-nginx              # 아래 template의 label과 일치해야 함
+  template:
+    metadata:
+      labels:
+        app: web-nginx            # Service가 이 label을 보고 트래픽 전달
+    spec:
+      # web 노드에만 배치하도록 강제
+      nodeSelector:
+        node-role: web
+
+      containers:
+        - name: nginx             # 컨테이너 이름
+          image: nginx:1.27       # Docker Hub의 nginx 공식 이미지
+          ports:
+            - containerPort: 80   # 컨테이너 내부 포트
+          resources:
+            # 최소 보장 자원
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            # 최대 사용 가능 자원
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+
+---
+# Service는 파드에 안정적인 네트워크 접근 경로 제공
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-nginx-svc             # 클러스터 내부 서비스 이름
+  namespace: default
+spec:
+  selector:
+    app: web-nginx                # 이 label을 가진 파드로 트래픽 전달
+  ports:
+    - name: http
+      port: 80                    # 클러스터 내부에서 접근할 포트
+      targetPort: 80              # 실제 컨테이너 포트
+  type: ClusterIP                 # 클러스터 내부에서만 접근 가능
