@@ -1,0 +1,53 @@
+---
+# 1. 필수 라이브러리 설치
+- name: Prometheus Agent용 파이썬 라이브러리 설치
+  become: true
+  apt:
+    name:
+      - python3-kubernetes
+      - python3-yaml
+    state: present
+  register: apt_res
+  until: apt_res is success
+  retries: 5
+  delay: 10
+
+# 2. Prometheus Agent 배포 (에이전트 모드 최적화)
+- name: Prometheus Agent 배포
+  become: true
+  kubernetes.core.helm:
+    name: prometheus-agent
+    chart_ref: prometheus-community/prometheus
+    release_namespace: "{{ my_ns | default('monitoring') }}"
+    create_namespace: true
+    kubeconfig: /etc/rancher/k3s/k3s.yaml
+    # [추가] 변경 사항이 있을 때 확실히 덮어쓰도록 설정
+    wait: true
+    values:
+      deploymentMode: agent
+
+      server:
+        retention: ""
+        statefulSet:
+          enabled: false
+
+        image:
+          repository: quay.io/prometheus/prometheus
+          tag: v2.45.0
+
+    
+        remoteWrite:
+          - url: "http://{{ central_prometheus_ip }}:9090/api/v1/write"
+
+        persistentVolume:
+          enabled: false
+
+      alertmanager:
+        enabled: false
+      pushgateway:
+        enabled: false
+
+      kube-state-metrics:
+        enabled: true
+      prometheus-node-exporter:
+        enabled: true
