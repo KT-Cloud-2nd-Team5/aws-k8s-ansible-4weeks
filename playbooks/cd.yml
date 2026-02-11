@@ -1,0 +1,33 @@
+---
+# playbooks/cd.yml
+#
+# 이 플레이북은 “CD(배포)”만 담당합니다.
+# - Docker build/push는 GitHub Actions가 수행
+# - 이 플레이북은 master에서 kubectl을 실행하여
+#   새 이미지를 적용하고 롤아웃이 성공했는지 검증합니다.
+
+- name: CD - Update image & rollout on K3s master
+  hosts: master
+  become: true
+
+  # 전달받아야 하는 값들(Workflow에서 --extra-vars로 넘어옵니다)
+  # image_full: ex) team5/mini-web:abc1234
+  # namespace:  ex) default
+  # deployment: ex) web-nginx
+  # container:  ex) nginx
+  vars:
+    image_full: "{{ image_full | default('') }}"
+    namespace: "{{ namespace | default('default') }}"
+    deployment: "{{ deployment | default('web-nginx') }}"
+    container: "{{ container | default('nginx') }}"
+
+  # image_full은 필수이므로 비어있으면 즉시 실패시키는 것이 안전합니다.
+  pre_tasks:
+    - name: Fail if image_full is empty
+      fail:
+        msg: "image_full is required (e.g. team5/mini-web:abc1234). Pass it via --extra-vars."
+      when: image_full | length == 0
+
+  roles:
+    # 실제 kubectl set image / rollout status 등은 role로 분리하여 재사용 가능하게 합니다.
+    - role: k8s_deploy
