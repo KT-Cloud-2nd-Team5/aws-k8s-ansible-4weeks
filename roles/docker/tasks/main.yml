@@ -1,6 +1,6 @@
-# roles/docker/tasks/main.yml
 ---
 - name: 도커 설치를 위한 필수 패키지 설치
+  become: true
   apt:
     name:
       - ca-certificates
@@ -8,21 +8,29 @@
       - gnupg
       - lsb-release
     state: present
-    update_cache: yes
+    update_cache: true
+  register: apt_res
+  until: apt_res is success
+  retries: 5
+  delay: 10
 
 - name: 도커 GPG 키 저장을 위한 디렉토리 생성
+  become: true
   file:
     path: /etc/apt/keyrings
     state: directory
-    mode: '0755'
+    mode: "0755"
 
 - name: 도커 공식 GPG 키 다운로드 및 저장
+  become: true
   get_url:
     url: https://download.docker.com/linux/ubuntu/gpg
     dest: /etc/apt/keyrings/docker.asc
-    mode: '0644'
+    mode: "0644"
+    force: true
 
 - name: 도커 공식 리포지토리 추가
+  become: true
   apt_repository:
     repo: >
       deb [arch={{ ansible_facts['architecture'] | replace('x86_64', 'amd64') }} signed-by=/etc/apt/keyrings/docker.asc]
@@ -31,6 +39,7 @@
     filename: docker
 
 - name: 도커 엔진 및 컴포즈 플러그인 설치
+  become: true
   apt:
     name:
       - docker-ce
@@ -39,22 +48,28 @@
       - docker-buildx-plugin
       - docker-compose-plugin
     state: present
-    update_cache: yes
-    
+    update_cache: true
+  register: apt_install_res
+  until: apt_install_res is success
+  retries: 5
+  delay: 10
+
 - name: docker 그룹 존재 확인 및 생성
-  become: yes
+  become: true
   group:
     name: docker
     state: present
 
 - name: 도커 서비스 시작 및 부팅 시 자동 실행 설정
+  become: true
   service:
     name: docker
     state: started
-    enabled: yes
+    enabled: true
 
 - name: 현재 사용자를 docker 그룹에 추가 (권한 설정)
+  become: true
   user:
-    name: "{{ target_user }}"
+    name: "{{ target_user | default('ubuntu') }}"
     groups: docker
-    append: yes
+    append: true
