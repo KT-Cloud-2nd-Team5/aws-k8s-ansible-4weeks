@@ -44,4 +44,4 @@ spec:
       port: 80                    # 클러스터 내부에서 접근할 포트
       targetPort: 80              # 실제 컨테이너 포트
       nodePort: 30080            # 외부에서 접속할 포트
-  type: NodPort
+  type: NodePort
