@@ -1,5 +1,5 @@
 ---
-# 1. 모니터링 서버 IP를 미리 계산 (전역 변수화)
+# 1. IP 계산 (기존 동일)
 - name: 변수 초기화
   hosts: all
   tasks:
@@ -10,29 +10,34 @@
       delegate_to: localhost
       delegate_facts: false
 
-# 2. 중앙 서버 구축 (Docker)
+# 2. 중앙 서버 구축 (Docker 기반)
 - name: 중앙 모니터링 서버 구축
   hosts: monitoring_server
-  # 경로를 바꾸지 않고 루트의 group_vars를 읽어오는 핵심 설정
   vars_files:
     - "../group_vars/monitoring_server.yml"
   roles:
     - docker
     - monitoring_stack
 
-# 3. 타겟 서버들 공통 설정 (DB, Nginx 통합)
-- name: 타겟 서버 모니터링 설정
-  hosts: db, web 
+# 3. [핵심] 마스터에서 헬름을 통해 클러스터 전체에 에이전트 배포
+- name: K3s 클러스터 모니터링 에이전트 배포
+  hosts: master  # 이제 여기서만 헬름이 실행됩니다.
   become: true
-  # db.yml, master.yml 
   vars_files:
-    - "../group_vars/db.yml"
+    - "../group_vars/master.yml"
   vars:
     my_ns: "monitoring"
   roles:
-    - role: prometheus_agent
-      central_prometheus_ip: "{{ hostvars['localhost']['target_central_ip'] if hostvars['localhost']['target_central_ip'] is defined else target_central_ip }}"
-    
-    # 인벤토리 그룹명에 맞춰 수정 (db_server -> db)
+    - role: prometheus_agent  # 이 안에 있는 '헬름 설치 코드'가 마스터에만 적용됩니다.
+      central_prometheus_ip: "{{ hostvars['localhost']['target_central_ip'] | default(target_central_ip) }}"
+
+# 4. K8s 외부/개별 설정 (필요한 경우에만)
+- name: DB 서버 전용 설정
+  hosts: db
+  become: true
+  vars_files:
+    - "../group_vars/db.yml"
+  roles:
+    # 에이전트는 이미 마스터가 깔아줬으니, 여기서는 DB 전용 엑스포터만 처리!
     - { role: mysql_exporter, when: "'db' in group_names" }
     # - { role: nginx_exporter, when: "'web' in group_names" }
