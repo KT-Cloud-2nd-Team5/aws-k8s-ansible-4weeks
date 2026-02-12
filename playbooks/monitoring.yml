@@ -21,7 +21,7 @@
 
 # 3. 타겟 서버들 공통 설정 (DB, Nginx 통합)
 - name: 타겟 서버 모니터링 설정
-  hosts: db_server, nginx_servers
+  hosts: db, web 
   become: true
   vars:
     my_ns: "monitoring"
@@ -32,4 +32,4 @@
 
   
     - { role: mysql_exporter, when: "'db_server' in group_names" }
-    - { role: nginx_exporter, when: "'nginx_servers' in group_names" }
+#    - { role: nginx_exporter, when: "'nginx_servers' in group_names" }
