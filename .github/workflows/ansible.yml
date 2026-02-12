@@ -46,12 +46,16 @@
             sudo apt-get update
             sudo apt-get install -y ansible
 
-        - name: Install Ansible Dependencies
+        # 1. pip3 명령어가 없는 경우 설치 (에러 127 방지)
+        # 2. Ansible 엔진 업그레이드 (최신 모듈 호환성 확보)
+        # 3. 필요한 모든 컬렉션 설치 (Docker 및 Kubernetes)
+        - name: Setup Ansible Environment and Collections
           run: |
-           # 1. 안시블 엔진 업그레이드 (최신 모듈 호환성 확보)
+            if! command -v pip3 &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y python3-pip
+            fi
+            python3 -m pip install --upgrade pip
             pip3 install -U ansible-core
-
-           # 2. 필요한 모든 컬렉션 최신버전 설치 (도커 및 쿠버네티스)
             ansible-galaxy collection install community.docker kubernetes.core --force
 
         # [디버깅용] 파일이 잘 보이는지 확인 (성공 후 삭제 가능)
