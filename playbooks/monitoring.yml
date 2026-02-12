@@ -32,4 +32,4 @@
 
   
     - { role: mysql_exporter, when: "'db_server' in group_names" }
-    - { role: nginx_exporter, when: "'nginx_servers' in group_names" }
+#    - { role: nginx_exporter, when: "'nginx_servers' in group_names" }
