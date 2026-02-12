@@ -8,5 +8,5 @@
 # 2) k8s 매니페스트(nginx 등) 초기 apply
 - import_playbook: k8s_apply.yml
 
-- import_playbook: monitoring.yml
+#- import_playbook: monitoring.yml
 
