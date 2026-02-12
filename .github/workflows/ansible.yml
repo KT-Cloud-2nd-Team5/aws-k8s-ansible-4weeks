@@ -52,7 +52,7 @@
         - name: Setup Ansible Environment and Collections
           run: |
             if! command -v pip3 &> /dev/null; then
-            sudo apt-get update && sudo apt-get install -y python3-pip
+              sudo apt-get update && sudo apt-get install -y python3-pip
             fi
             python3 -m pip install --upgrade pip
             pip3 install -U ansible-core
