@@ -46,10 +46,13 @@
             sudo apt-get update
             sudo apt-get install -y ansible
 
-          # 도커 제어를 위한 앤서블 컬렉션 설치
-        - name: Install Ansible Docker Collection
+        - name: Install Ansible Dependencies
           run: |
-            ansible-galaxy collection install community.docker
+           # 1. 안시블 엔진 업그레이드 (최신 모듈 호환성 확보)
+            pip3 install -U ansible-core
+
+           # 2. 필요한 모든 컬렉션 최신버전 설치 (도커 및 쿠버네티스)
+            ansible-galaxy collection install community.docker kubernetes.core --force
 
         # [디버깅용] 파일이 잘 보이는지 확인 (성공 후 삭제 가능)
         - name: Debug - Check File Existence
