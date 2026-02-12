@@ -1,9 +1,26 @@
 ---
-# 1. 필수 라이브러리 및 도구 설치
+# [추가] 1. Helm 미설치 시 자동 설치 (가장 편한 방법)
+- name: Helm 설치 여부 확인
+  command: helm version
+  register: helm_check
+  ignore_errors: true
+  changed_when: false
+
+- name: Helm 공식 설치 스크립트 실행
+  shell: |
+    curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+    chmod 700 get_helm.sh
+    ./get_helm.sh
+  when: helm_check.failed
+  become: true
+
+# 2. 필수 라이브러리 및 도구 설치
 - name: pip3 설치 (파이썬 라이브러리 관리용)
   become: true
   apt:
-    name: python3-pip
+    name: 
+      - python3-pip
+      - curl
     state: present
     update_cache: yes
 
@@ -19,7 +36,13 @@
   retries: 5
   delay: 10
 
-# 2. Prometheus Agent 배포 (에이전트 모드 최적화)
+# [추가] 3. Prometheus Community Helm 저장소 추가 (에이전트 배포 전 필수)
+- name: Prometheus Community Helm 저장소 추가
+  kubernetes.core.helm_repository:
+    name: prometheus-community
+    repo_url: "https://prometheus-community.github.io/helm-charts"
+
+# 4. Prometheus Agent 배포 (에이전트 모드 최적화)
 - name: Prometheus Agent 배포
   become: true
   kubernetes.core.helm:
@@ -31,7 +54,7 @@
     kubeconfig: /etc/rancher/k3s/k3s.yaml
     wait: true
     values:
-      # 에이전트 전용 모드 활성화 (기존 로컬 저장 기능 최소화)
+      # 에이전트 전용 모드 활성화
       deploymentMode: agent
 
       server:
