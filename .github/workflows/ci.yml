@@ -2,7 +2,7 @@ name: CI/CD - Build, Push, Deploy
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main","feature/latest-tag-test"]
     paths:
       - "app/**"
       # CD 코드가 바뀌어도 동작하게 포함(권장)
@@ -65,17 +65,20 @@ jobs:
           SHORT_SHA="${GITHUB_SHA::7}"
           echo "SHORT_SHA=$SHORT_SHA" >> $GITHUB_ENV
           echo "IMAGE_FULL=${DOCKER_IMAGE}:${SHORT_SHA}" >> $GITHUB_ENV
+          echo "IMAGE_LATEST=${DOCKER_IMAGE}:latest" >> $GITHUB_ENV
           echo "[INFO] IMAGE_FULL=${DOCKER_IMAGE}:${SHORT_SHA}"
+          echo "[INFO] IMAGE_LATEST=${DOCKER_IMAGE}:latest"
 
       - name: Build & Push Image (SHORT_SHA)
         run: |
           set -e
-          docker build -t "${DOCKER_IMAGE}:${SHORT_SHA}" ./app
+          docker build -t "${DOCKER_IMAGE}:${SHORT_SHA}" -t "${DOCKER_IMAGE}:latest" ./app
           docker push "${DOCKER_IMAGE}:${SHORT_SHA}"
+          docker push "${DOCKER_IMAGE}:latest"
 
       #  CD: 방금 푸시한 이미지 태그 그대로 전달
       - name: Deploy (Ansible CD)
         run: |
           set -e
           ansible-playbook -i inventory/inventory.ini playbooks/cd.yml \
-            -e "image_full=${IMAGE_FULL} namespace=default deployment=web-nginx container=nginx"
+            -e "image_full=${IMAGE_LATEST} namespace=default deployment=web-nginx container=nginx"
