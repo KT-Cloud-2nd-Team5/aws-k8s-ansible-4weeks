@@ -5,16 +5,17 @@
   tasks:
     - name: 중앙 서버 IP 고정
       set_fact:
-        # hostvars에서 실제 IP(ansible_host)를 추출하되, 없을 경우 인벤토리 이름을 할당
         target_central_ip: "{{ hostvars[groups['monitoring_server'][0]]['ansible_host'] | default(groups['monitoring_server'][0]) }}"
       run_once: true
-      # 이 변수를 모든 호스트(db_server, nginx_servers)가 공유할 수 있도록 강제 설정
       delegate_to: localhost
       delegate_facts: false
 
 # 2. 중앙 서버 구축 (Docker)
 - name: 중앙 모니터링 서버 구축
   hosts: monitoring_server
+  # 경로를 바꾸지 않고 루트의 group_vars를 읽어오는 핵심 설정
+  vars_files:
+    - "../group_vars/monitoring_server.yml"
   roles:
     - docker
     - monitoring_stack
@@ -23,13 +24,15 @@
 - name: 타겟 서버 모니터링 설정
   hosts: db, web 
   become: true
+  # db.yml, master.yml 
+  vars_files:
+    - "../group_vars/db.yml"
   vars:
     my_ns: "monitoring"
   roles:
-  
     - role: prometheus_agent
       central_prometheus_ip: "{{ hostvars['localhost']['target_central_ip'] if hostvars['localhost']['target_central_ip'] is defined else target_central_ip }}"
-
-  
-    - { role: mysql_exporter, when: "'db_server' in group_names" }
-#    - { role: nginx_exporter, when: "'nginx_servers' in group_names" }
+    
+    # 인벤토리 그룹명에 맞춰 수정 (db_server -> db)
+    - { role: mysql_exporter, when: "'db' in group_names" }
+    # - { role: nginx_exporter, when: "'web' in group_names" }
