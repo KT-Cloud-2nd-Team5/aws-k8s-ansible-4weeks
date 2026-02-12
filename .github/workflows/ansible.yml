@@ -2,7 +2,7 @@
 
   on:
     push:
-      branches: ["main","feature/latest-tag-test"] # main 브랜치에 코드가 push될 때 실행
+      branches: ["main"] # main 브랜치에 코드가 push될 때 실행
       paths:             # 아래 폴더나 파일이 변경되었을 때만 실행
         - "playbooks/**"
         - "roles/**"
