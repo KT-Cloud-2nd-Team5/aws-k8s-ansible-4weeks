@@ -13,14 +13,13 @@
 # 2. 중앙 서버 구축 (Docker)
 - name: 중앙 모니터링 서버 구축
   hosts: monitoring_server
-  # 경로를 바꾸지 않고 루트의 group_vars를 읽어오는 핵심 설정
   vars_files:
     - "../group_vars/monitoring_server.yml"
   roles:
     - docker
     - monitoring_stack
 
-# 3. 타겟 서버들 공통 설정 (DB, Nginx 통합)
+# 3. 타겟 서버들 공통 설정
 - name: 타겟 서버 모니터링 설정
   hosts: db, web 
   become: true
@@ -33,6 +32,5 @@
     - role: prometheus_agent
       central_prometheus_ip: "{{ hostvars['localhost']['target_central_ip'] if hostvars['localhost']['target_central_ip'] is defined else target_central_ip }}"
     
-    # 인벤토리 그룹명에 맞춰 수정 (db_server -> db)
     - { role: mysql_exporter, when: "'db' in group_names" }
     # - { role: nginx_exporter, when: "'web' in group_names" }
