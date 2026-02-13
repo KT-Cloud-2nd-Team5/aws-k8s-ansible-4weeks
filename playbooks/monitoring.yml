@@ -8,29 +8,21 @@
         target_central_ip: "{{ hostvars[groups['monitoring_server'][0]]['ansible_host'] | default(groups['monitoring_server'][0]) }}"
       run_once: true
       delegate_to: localhost
-      delegate_facts: false
+      delegate_facts: true  
 
 # 2. 중앙 서버 구축 (Docker)
 - name: 중앙 모니터링 서버 구축
   hosts: monitoring_server
   vars_files:
+    - "../group_vars/all.yml"  
     - "../group_vars/monitoring_server.yml"
   roles:
     - docker
     - monitoring_stack
 
-# 3. 타겟 서버들 공통 설정
-- name: 타겟 서버 모니터링 설정
-  hosts: db, web 
+# 3. 타겟 서버들 공통 설정 -> 'master'에서 헬름 배포 수행
+- name: 쿠버네티스 에이전트 배포
+  hosts: master  # db, web이 아닌 master로 변경
   become: true
-  # db.yml, master.yml 
-  vars_files:
-    - "../group_vars/db.yml"
-  vars:
-    my_ns: "monitoring"
   roles:
     - role: prometheus_agent
-      central_prometheus_ip: "{{ hostvars['localhost']['target_central_ip'] if hostvars['localhost']['target_central_ip'] is defined else target_central_ip }}"
-    
-    - { role: mysql_exporter, when: "'db' in group_names" }
-    # - { role: nginx_exporter, when: "'web' in group_names" }
