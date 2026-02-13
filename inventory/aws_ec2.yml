@@ -1,0 +1,29 @@
+plugin: aws_ec2
+regions:
+  - ap-northeast-2
+
+# 1. 관리할 대상 필터링 (Terraform에서 만든 것만)
+filters:
+  tag:Environment: dev
+  instance-state-name: running
+
+# 2. 그룹 자동 생성 (Role 태그 값으로 그룹 생성)
+# 결과: 'master', 'web', 'db' 라는 그룹이 자동으로 생김
+keyed_groups:
+  - key: tags.Role
+    prefix: ""
+    separator: ""
+
+# 3. Workers 그룹 생성 (Type 태그 이용)
+# 결과: 'worker' 라는 그룹 생성 (web, db가 모두 포함됨)
+  - key: tags.Type
+    prefix: ""
+    separator: ""
+
+# 4. 호스트네임 설정 (Private IP 사용)
+hostnames:
+  - private-ip-address
+  - dns-name
+
+compose:
+  ansible_host: private_ip_address

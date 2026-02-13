@@ -53,6 +53,11 @@ jobs:
           fi
           ansible --version
 
+      - name: Install Python dependencies for Ansible AWS
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip
+          pip3 install boto3 botocore
       - name: Docker Login
         run: |
           set -e
@@ -80,5 +85,5 @@ jobs:
       - name: Deploy (Ansible CD)
         run: |
           set -e
-          ansible-playbook -i inventory/inventory.ini playbooks/cd.yml \
+          ansible-playbook -i inventory/ playbooks/cd.yml \
             -e "image_full=${IMAGE_LATEST} namespace=default deployment=web-nginx container=nginx"
