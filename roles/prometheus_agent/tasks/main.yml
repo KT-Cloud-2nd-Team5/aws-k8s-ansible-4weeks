@@ -16,18 +16,28 @@
     ./get_helm.sh
   when: helm_check.failed
 
-# 2. pip3만 개별 설치 (업데이트 캐시 생략으로 부하 감소)
-- name: python3-pip 개별 설치 (메모리 부하 분산)
+# 2. 앤서블 모듈 대신 쉘을 통해 강제로 업데이트 시도 (타임아웃 방지)
+- name: APT 캐시 강제 업데이트 (Proxy 활용)
+  become: true
+  shell: |
+    export http_proxy="{{ proxy_url }}"
+    export https_proxy="{{ proxy_url }}"
+    apt-get clean
+    apt-get update -o Acquire::ForceIPv4=true
+  args:
+    executable: /bin/bash
+
+# 3. 개별 설치 진행
+- name: python3-pip 개별 설치
   become: true
   apt:
     name: python3-pip
     state: present
-    update_cache: no
+    update_cache: no  # 위에서 쉘로 했으므로 no
   environment:
     http_proxy: "{{ proxy_url }}"
     https_proxy: "{{ proxy_url }}"
 
-# 3. 통신용 라이브러리 설치
 - name: python3-kubernetes 설치
   become: true
   apt:
