@@ -9,13 +9,6 @@
 - name: CD - Update image & rollout on K3s master
   hosts: master
   become: true
-  # image_full은 필수이므로 비어있으면 즉시 실패시키는 것이 안전합니다.
-  pre_tasks:
-    - name: Fail if image_full is empty
-      fail:
-        msg: "image_full is required (e.g. team5/mini-web:abc1234). Pass it via --extra-vars."
-      when: image_full | length == 0
-
   roles:
     # 실제 kubectl set image / rollout status 등은 role로 분리하여 재사용 가능하게 합니다.
     - role: k8s_deploy
