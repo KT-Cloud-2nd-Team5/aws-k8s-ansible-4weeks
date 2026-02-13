@@ -18,7 +18,7 @@ dashboard_ids:
   - { id: 16378, revision: 1 }    #Node Exporter Nodes
   - { id: 14057, revision: 1 }     #MySQL Overview
 # Discord 또는 Slack에서 만든 Webhook URL
-alert_webhook_url: "https://discord.com/api/webhooks/your-id-here"
+alert_webhook_url: "https://discord.com/api/webhooks/1468844118750007492/vKKoldUKN4q-olnZFcsg9_7pyxnxbb4snoAhw1VwZLZH-WmZfvo5FLCz9YKQXW8JNxpD"
 
 # 외부 노출 포트 (NodePort)
 mysql_exporter_node_port: 30104   
