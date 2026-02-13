@@ -2,7 +2,9 @@ name: CI/CD - Build, Push, Deploy
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - "main"
+      - "test-cicd"
     paths:
       - "app/**"
       # CD 코드가 바뀌어도 동작하게 포함(권장)
