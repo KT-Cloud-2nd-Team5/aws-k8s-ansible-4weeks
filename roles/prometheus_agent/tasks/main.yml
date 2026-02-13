@@ -10,8 +10,6 @@
 - name: Helm 설치 (Proxy 활용)
   become: true
   shell: |
-    export http_proxy="{{ proxy_url }}"
-    export https_proxy="{{ proxy_url }}"
     curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
     chmod 700 get_helm.sh
     ./get_helm.sh
@@ -24,17 +22,11 @@
     url: https://bootstrap.pypa.io/get-pip.py
     dest: /tmp/get-pip.py
     validate_certs: no
-  environment:
-    http_proxy: "{{ proxy_url }}"
-    https_proxy: "{{ proxy_url }}"
 
 # [핵심 변경] 4. 스크립트로 pip 설치 (APT 의존성 제거)
 - name: (우회) pip 설치 실행
   become: true
   shell: python3 /tmp/get-pip.py
-  environment:
-    http_proxy: "{{ proxy_url }}"
-    https_proxy: "{{ proxy_url }}"
 
 # [핵심 변경] 5. 라이브러리 설치 (방금 설치한 pip 사용)
 - name: (우회) kubernetes 라이브러리 설치
@@ -51,9 +43,6 @@
   kubernetes.core.helm_repository:
     name: prometheus-community
     repo_url: "https://prometheus-community.github.io/helm-charts"
-  environment:
-    http_proxy: "{{ proxy_url }}"
-    https_proxy: "{{ proxy_url }}"
 
 # 7. 에이전트 배포 (이전과 동일)
 - name: Prometheus Agent 배포
@@ -70,6 +59,3 @@
       server:
         remoteWrite:
           - url: "http://{{ proxy_server_ip }}:9090/api/v1/write"
-  environment:
-    http_proxy: "{{ proxy_url }}"
-    https_proxy: "{{ proxy_url }}"
