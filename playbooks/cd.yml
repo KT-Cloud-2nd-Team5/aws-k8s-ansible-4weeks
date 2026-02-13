@@ -9,6 +9,10 @@
 - name: CD - Update image & rollout on K3s master
   hosts: master
   become: true
+  vars:
+    deployment: web-nginx   # 디플로이먼트 이름
+    container: nginx        # 컨테이너 이름 (롤아웃 확인용)
+    namespace: default      
   roles:
     # 실제 kubectl set image / rollout status 등은 role로 분리하여 재사용 가능하게 합니다.
     - role: k8s_deploy
