@@ -7,10 +7,10 @@ filters:
   instance-state-name: running
 
 keyed_groups:
-  - key: tag.Role
+  - key: tags.Role
     prefix: ""
     separator: ""
-  - key: tag.Type
+  - key: tags.Type
     prefix: ""
     separator: ""
 
