@@ -7,10 +7,10 @@ filters:
   instance-state-name: running
 
 keyed_groups:
-  - key: tag_Role
+  - key: tags_Role
     prefix: ""
     separator: ""
-  - key: tag_Type
+  - key: tags_Type
     prefix: ""
     separator: ""
 
@@ -20,3 +20,4 @@ hostnames:
 
 compose:
   ansible_host: private_ip_address
+  ansible_user: ubuntu
