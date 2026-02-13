@@ -1,7 +1,13 @@
----
+ansible_user: ubuntu
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+
+# 1. 개별 변수 (다른 곳에서 {{ proxy_url }} 처럼 쓸 때 필요)
 proxy_server_ip: "10.0.1.74"
 proxy_port: "3128"
 proxy_url: "http://{{ proxy_server_ip }}:{{ proxy_port }}"
-no_proxy_list: "127.0.0.1,localhost,10.0.0.0/16,.svc,.cluster.local"
-ansible_user: ubuntu
+
+# 2. [핵심] 환경변수 덩어리 (Task 실행 시 통째로 넘길 것)
+proxy_env:
+  http_proxy: "http://{{ proxy_server_ip }}:{{ proxy_port }}"
+  https_proxy: "http://{{ proxy_server_ip }}:{{ proxy_port }}"
+  no_proxy: "127.0.0.1,localhost,10.0.0.0/16,.svc,.cluster.local"

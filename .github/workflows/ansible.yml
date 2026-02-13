@@ -83,7 +83,6 @@
 
         - name: Run site.yml
           # 실제 플레이북 실행
-          # [추가한곳] 배포 태그는 항상 latest로 고정
           run: |
             IMAGE_TAG=latest
 
