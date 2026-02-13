@@ -1,28 +1,20 @@
 ---
 # roles/k3s_master/tasks/main.yml
 
-- name: Install K3s server on master (force proxy inside shell)
+- name: Install K3s server on master (optimized proxy)
   become: true
   shell: |
     set -eu
+    # 전역 변수에서 프록시 설정 로드
+    export http_proxy="{{ proxy_url }}"
+    export https_proxy="{{ proxy_url }}"
+    export no_proxy="{{ no_proxy_list }},{{ ansible_host }}"
 
-    # master는 프록시 필요(강제)
-    PROXY="http://10.0.1.74:3128"
-    NO_PROXY_LIST="127.0.0.1,localhost,10.0.0.0/16,10.0.2.235,.svc,.cluster.local"
-
-    # sudo/become가 env를 날려도 상관없게 쉘 내부에서 강제 export
-    export http_proxy="${PROXY}"
-    export https_proxy="${PROXY}"
-    export HTTP_PROXY="${PROXY}"
-    export HTTPS_PROXY="${PROXY}"
-    export no_proxy="${NO_PROXY_LIST}"
-    export NO_PROXY="${NO_PROXY_LIST}"
-
-    # 스크립트 다운로드: proxy 강제 + IPv4 강제
-    curl -4 --proxy "${PROXY}" -fL https://get.k3s.io -o /tmp/k3s_install.sh
+    # IPv4 강제 및 프록시를 통한 설치 스크립트 다운로드
+    curl -4 --proxy "{{ proxy_url }}" -fL https://get.k3s.io -o /tmp/k3s_install.sh
     chmod +x /tmp/k3s_install.sh
 
-    # 설치 실행
+    # K3s 서버 설치 실행
     INSTALL_K3S_EXEC="server --write-kubeconfig-mode 644" /tmp/k3s_install.sh
   args:
     executable: /bin/bash

@@ -1,48 +1,42 @@
 ---
-# [추가] 1. Helm 미설치 시 자동 설치 (가장 편한 방법)
+# 1. Helm 설치 여부 확인 및 프록시 기반 설치
 - name: Helm 설치 여부 확인
   command: helm version
   register: helm_check
   ignore_errors: true
   changed_when: false
 
-- name: Helm 공식 설치 스크립트 실행
+- name: Helm 설치 (Proxy 활용)
+  become: true
   shell: |
-    curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+    export http_proxy="{{ proxy_url }}"
+    export https_proxy="{{ proxy_url }}"
+    curl -4 --proxy "{{ proxy_url }}" -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
     chmod 700 get_helm.sh
     ./get_helm.sh
   when: helm_check.failed
-  become: true
 
-# 2. 필수 라이브러리 및 도구 설치
-- name: pip3 설치 (파이썬 라이브러리 관리용)
+# 2. 필수 파이썬 라이브러리 설치 (Ansible Helm 모듈용)
+- name: pip3 및 K8s 라이브러리 설치 (Proxy 활용)
   become: true
   apt:
-    name: 
-      - python3-pip
-      - curl
+    name: [python3-pip, python3-kubernetes]
     state: present
     update_cache: yes
+  environment:
+    http_proxy: "{{ proxy_url }}"
+    https_proxy: "{{ proxy_url }}"
 
-- name: Prometheus Agent용 파이썬 라이브러리 설치 (pip 사용)
-  become: true
-  ansible.builtin.pip:
-    name:
-      - kubernetes
-      - PyYAML
-    state: present
-  register: pip_res
-  until: pip_res is success
-  retries: 5
-  delay: 10
-
-# [추가] 3. Prometheus Community Helm 저장소 추가 (에이전트 배포 전 필수)
-- name: Prometheus Community Helm 저장소 추가
+# 3. Helm 저장소 추가 및 업데이트
+- name: Prometheus Community 저장소 추가
   kubernetes.core.helm_repository:
     name: prometheus-community
     repo_url: "https://prometheus-community.github.io/helm-charts"
+  environment:
+    http_proxy: "{{ proxy_url }}"
+    https_proxy: "{{ proxy_url }}"
 
-# 4. Prometheus Agent 배포 (에이전트 모드 최적화)
+# 4. Prometheus Agent 배포 (Remote Write 설정 포함)
 - name: Prometheus Agent 배포
   become: true
   kubernetes.core.helm:
@@ -50,36 +44,18 @@
     chart_ref: prometheus-community/prometheus
     release_namespace: "{{ my_ns | default('monitoring') }}"
     create_namespace: true
-    # k3s의 기본 kubeconfig 경로 사용
     kubeconfig: /etc/rancher/k3s/k3s.yaml
-    wait: true
     values:
-      # 에이전트 전용 모드 활성화
       deploymentMode: agent
-
       server:
-        retention: ""
+        # 에이전트 모드 최적화: 서버 기능 비활성화
+        enabled: true
         statefulSet:
           enabled: false
-
-        image:
-          repository: quay.io/prometheus/prometheus
-          tag: v2.45.0
-
-        # 중앙 서버로 데이터를 쏴주는 핵심 설정
+        # 중앙 모니터링 서버(Bastion)로 데이터 전송
         remoteWrite:
-          - url: "http://{{ central_prometheus_ip }}:9090/api/v1/write"
-
-        persistentVolume:
-          enabled: false
-
-      alertmanager:
-        enabled: false
-      pushgateway:
-        enabled: false
-
-      # 메트릭 수집기 활성화
-      kube-state-metrics:
-        enabled: true
-      prometheus-node-exporter:
-        enabled: true
+          - url: "http://{{ proxy_server_ip }}:9090/api/v1/write"
+  environment:
+    http_proxy: "{{ proxy_url }}"
+    https_proxy: "{{ proxy_url }}"
+    no_proxy: "{{ no_proxy_list }}"
