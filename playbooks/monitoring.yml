@@ -3,15 +3,18 @@
 - name: 변수 초기화
   hosts: all
   tasks:
-
+    - name: 중앙 서버 IP 고정
+      set_fact:
+        target_central_ip: "{{ hostvars[groups['monitoring_server'][0]]['ansible_host'] | default(groups['monitoring_server'][0]) }}"
+      run_once: true
       delegate_to: localhost
-      delegate_facts: false
+      delegate_facts: true  # localhost에 fact를 저장하여 다른 play에서 참조 가능하게 함
 
 # 2. 중앙 서버 구축 (Docker)
 - name: 중앙 모니터링 서버 구축
   hosts: monitoring_server
-  # 경로를 바꾸지 않고 루트의 group_vars를 읽어오는 핵심 설정
   vars_files:
+    - "../group_vars/all.yml"  # [추가] 프록시 등 공통 변수 로드
     - "../group_vars/monitoring_server.yml"
   roles:
     - docker
@@ -19,18 +22,17 @@
 
 # 3. 타겟 서버들 공통 설정 (DB, Nginx 통합)
 - name: 타겟 서버 모니터링 설정
-  hosts: db, web 
+  hosts: db, web
   become: true
-  # db.yml, master.yml 
   vars_files:
+    - "../group_vars/all.yml"  # [추가] 프록시 등 공통 변수 로드
     - "../group_vars/db.yml"
   vars:
     my_ns: "monitoring"
   roles:
     - role: prometheus_agent
-      central_prometheus_ip: "{{ hostvars['localhost']['target_central_ip'] if hostvars['localhost']['target_central_ip'] is defined else target_central_ip }}"
+      # 변수 초기화 play에서 delegate_facts: true를 했으므로 아래와 같이 참조 가능
+      central_prometheus_ip: "{{ hostvars['localhost']['target_central_ip'] }}"
     
-    # 인벤토리 그룹명에 맞춰 수정 (db_server -> db)
-
+    # 인벤토리 그룹명(db)에 맞춰 조건부 실행
     - { role: mysql_exporter, when: "'db' in group_names" }
-    # - { role: nginx_exporter, when: "'web' in group_names" }
