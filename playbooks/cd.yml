@@ -1,18 +1,16 @@
----
 # playbooks/cd.yml
-#
-# 이 플레이북은 “CD(배포)”만 담당합니다.
-# - Docker build/push는 GitHub Actions가 수행
-# - 이 플레이북은 master에서 kubectl을 실행하여
-#   새 이미지를 적용하고 롤아웃이 성공했는지 검증합니다.
+---
+# [1단계] 매니페스트 파일 복사 및 적용 (Apply)
+# 아까 잘 만들어두신 k8s_apply.yml을 가져옵니다.
+- import_playbook: k8s_apply.yml
 
+# [2단계] 파드 재시작 및 상태 확인 (Restart & Verify)
 - name: CD - Update image & rollout on K3s master
   hosts: master
   become: true
   vars:
-    deployment: web-nginx   # 디플로이먼트 이름
-    container: nginx        # 컨테이너 이름 (롤아웃 확인용)
-    namespace: default      
+    deployment: web-nginx
+    container: nginx
+    namespace: default
   roles:
-    # 실제 kubectl set image / rollout status 등은 role로 분리하여 재사용 가능하게 합니다.
     - role: k8s_deploy
