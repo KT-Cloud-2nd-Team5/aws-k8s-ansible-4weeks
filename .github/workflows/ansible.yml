@@ -74,12 +74,12 @@
         - name: Connectivity check
           # 통신 확인
           run: |
-            ansible -i inventory/ all -m ping
+            ansible -i inventory/aws_ec3.yml -i inventory/static.ini all -m ping
 
         - name: Syntax check (site.yml)
           # 문법 검사
           run: |
-            ansible-playbook -i inventory/ playbooks/site.yml --syntax-check
+            ansible-playbook -i inventory/aws_ec3.yml -i inventory/static.ini playbooks/site.yml --syntax-check
 
         - name: Run site.yml
           # 실제 플레이북 실행
@@ -88,5 +88,5 @@
 
             echo "Deploying Tag: $IMAGE_TAG"
 
-            ansible-playbook -i inventory/ playbooks/site.yml \
+            ansible-playbook -i inventory/aws_ec3.yml -i inventory/static.ini playbooks/site.yml \
               --extra-vars "image_repo=${DOCKER_IMAGE} image_tag=${IMAGE_TAG}"
