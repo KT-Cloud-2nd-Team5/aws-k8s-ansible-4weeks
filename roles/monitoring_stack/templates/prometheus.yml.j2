@@ -5,12 +5,10 @@ global:
     monitor: 'monitoring-server'
 
 scrape_configs:
-  # 중앙 서버 자기 자신의 메트릭만 수집
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
 
-  # (선택사항) 중앙 서버 노드 자체의 리소스도 보고 싶다면 유지
   - job_name: 'monitoring-server-node'
     static_configs:
       - targets: ['host.docker.internal:9100']

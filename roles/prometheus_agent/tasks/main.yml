@@ -1,61 +1,48 @@
 ---
-# 1. Helm 설치 여부 확인
+# 1. Helm 미설치 시 자동 설치
 - name: Helm 설치 여부 확인
   command: helm version
   register: helm_check
   ignore_errors: true
   changed_when: false
 
-# 2. Helm 직접 설치 (프록시 적용)
-- name: Helm 설치 (Proxy 활용)
-  become: true
+- name: Helm 공식 설치 스크립트 실행
   shell: |
-    export http_proxy="{{ proxy_url }}"
-    export https_proxy="{{ proxy_url }}"
     curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
     chmod 700 get_helm.sh
     ./get_helm.sh
   when: helm_check.failed
-
-# [핵심 변경] 3. APT 대신 curl로 pip 설치 스크립트 다운로드
-- name: (우회) pip 수동 설치 스크립트 다운로드
   become: true
-  get_url:
-    url: https://bootstrap.pypa.io/get-pip.py
-    dest: /tmp/get-pip.py
-    validate_certs: no
-  environment:
-    http_proxy: "{{ proxy_url }}"
-    https_proxy: "{{ proxy_url }}"
 
-# [핵심 변경] 4. 스크립트로 pip 설치 (APT 의존성 제거)
-- name: (우회) pip 설치 실행
+# 2. 필수 라이브러리 및 도구 설치
+- name: pip3 설치 
   become: true
-  shell: python3 /tmp/get-pip.py
-  environment:
-    http_proxy: "{{ proxy_url }}"
-    https_proxy: "{{ proxy_url }}"
+  apt:
+    name: 
+      - python3-pip
+      - curl
+    state: present
+    update_cache: yes
 
-# [핵심 변경] 5. 라이브러리 설치 (방금 설치한 pip 사용)
-- name: (우회) kubernetes 라이브러리 설치
+- name: Prometheus Agent용 파이썬 라이브러리 설치
   become: true
-  shell: |
-    export http_proxy="{{ proxy_url }}"
-    export https_proxy="{{ proxy_url }}"
-    /usr/local/bin/pip3 install kubernetes
-  args:
-    executable: /bin/bash
+  ansible.builtin.pip:
+    name:
+      - kubernetes
+      - PyYAML
+    state: present
+  register: pip_res
+  until: pip_res is success
+  retries: 5
+  delay: 10
 
-# 6. Helm 저장소 추가
-- name: Prometheus Community 저장소 추가
+# 3. Prometheus Community Helm 저장소 추가 
+- name: Prometheus Community Helm 저장소 추가
   kubernetes.core.helm_repository:
     name: prometheus-community
     repo_url: "https://prometheus-community.github.io/helm-charts"
-  environment:
-    http_proxy: "{{ proxy_url }}"
-    https_proxy: "{{ proxy_url }}"
 
-# 7. 에이전트 배포 (이전과 동일)
+# 4. Prometheus Agent 배포 
 - name: Prometheus Agent 배포
   become: true
   kubernetes.core.helm:
@@ -67,9 +54,30 @@
     wait: true
     values:
       deploymentMode: agent
+
       server:
+        retention: ""
+        statefulSet:
+          enabled: false
+
+        image:
+          repository: quay.io/prometheus/prometheus
+          tag: v2.45.0
+
+        # remote-write 설정
         remoteWrite:
-          - url: "http://{{ proxy_server_ip }}:9090/api/v1/write"
-  environment:
-    http_proxy: "{{ proxy_url }}"
-    https_proxy: "{{ proxy_url }}"
+          - url: "http://{{ central_prometheus_ip }}:9090/api/v1/write"
+
+        persistentVolume:
+          enabled: false
+
+      alertmanager:
+        enabled: false
+      pushgateway:
+        enabled: false
+
+      # 메트릭 수집기 활성화
+      kube-state-metrics:
+        enabled: true
+      prometheus-node-exporter:
+        enabled: true

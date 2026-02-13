@@ -8,13 +8,13 @@
         target_central_ip: "{{ hostvars[groups['monitoring_server'][0]]['ansible_host'] | default(groups['monitoring_server'][0]) }}"
       run_once: true
       delegate_to: localhost
-      delegate_facts: true  # localhost에 fact를 저장하여 다른 play에서 참조 가능하게 함
+      delegate_facts: true  
 
 # 2. 중앙 서버 구축 (Docker)
 - name: 중앙 모니터링 서버 구축
   hosts: monitoring_server
   vars_files:
-    - "../group_vars/all.yml"  # [추가] 프록시 등 공통 변수 로드
+    - "../group_vars/all.yml"  
     - "../group_vars/monitoring_server.yml"
   roles:
     - docker
