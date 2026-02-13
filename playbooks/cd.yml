@@ -9,18 +9,6 @@
 - name: CD - Update image & rollout on K3s master
   hosts: master
   become: true
-
-  # 전달받아야 하는 값들(Workflow에서 --extra-vars로 넘어옵니다)
-  # image_full: ex) team5/mini-web:abc1234
-  # namespace:  ex) default
-  # deployment: ex) web-nginx
-  # container:  ex) nginx
-  vars:
-    image_full: "{{ image_full | default('') }}"
-    namespace: "{{ namespace | default('default') }}"
-    deployment: "{{ deployment | default('web-nginx') }}"
-    container: "{{ container | default('nginx') }}"
-
   # image_full은 필수이므로 비어있으면 즉시 실패시키는 것이 안전합니다.
   pre_tasks:
     - name: Fail if image_full is empty
