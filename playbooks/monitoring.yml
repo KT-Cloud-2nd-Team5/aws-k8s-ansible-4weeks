@@ -20,19 +20,9 @@
     - docker
     - monitoring_stack
 
-# 3. 타겟 서버들 공통 설정 (DB, Nginx 통합)
-- name: 타겟 서버 모니터링 설정
-  hosts: db, web
+# 3. 타겟 서버들 공통 설정 -> 'master'에서 헬름 배포 수행
+- name: 쿠버네티스 에이전트 배포
+  hosts: master  # db, web이 아닌 master로 변경
   become: true
-  vars_files:
-    - "../group_vars/all.yml"  # [추가] 프록시 등 공통 변수 로드
-    - "../group_vars/db.yml"
-  vars:
-    my_ns: "monitoring"
   roles:
     - role: prometheus_agent
-      # 변수 초기화 play에서 delegate_facts: true를 했으므로 아래와 같이 참조 가능
-      central_prometheus_ip: "{{ hostvars['localhost']['target_central_ip'] }}"
-    
-    # 인벤토리 그룹명(db)에 맞춰 조건부 실행
-    - { role: mysql_exporter, when: "'db' in group_names" }

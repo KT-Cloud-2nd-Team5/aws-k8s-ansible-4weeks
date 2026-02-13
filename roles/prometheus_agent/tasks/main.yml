@@ -44,15 +44,12 @@
     chart_ref: prometheus-community/prometheus
     release_namespace: "{{ my_ns | default('monitoring') }}"
     create_namespace: true
+    # 마스터 노드이므로 이 경로가 반드시 존재합니다.
     kubeconfig: /etc/rancher/k3s/k3s.yaml
+    wait: true
     values:
       deploymentMode: agent
       server:
-        # 에이전트 모드 최적화: 서버 기능 비활성화
-        enabled: true
-        statefulSet:
-          enabled: false
-        # 중앙 모니터링 서버(Bastion)로 데이터 전송
         remoteWrite:
           - url: "http://{{ proxy_server_ip }}:9090/api/v1/write"
   environment:
