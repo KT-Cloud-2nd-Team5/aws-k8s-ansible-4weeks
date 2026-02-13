@@ -2,7 +2,9 @@ name: CI/CD - Build, Push, Deploy
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - "main"
+      - "test-cicd"
     paths:
       - "app/**"
       # CD 코드가 바뀌어도 동작하게 포함(권장)
@@ -79,6 +81,4 @@ jobs:
       #  CD: 방금 푸시한 이미지 태그 그대로 전달
       - name: Deploy (Ansible CD)
         run: |
-          set -e
-          ansible-playbook -i inventory/inventory.ini playbooks/cd.yml \
-            -e "image_full=${IMAGE_LATEST} namespace=default deployment=web-nginx container=nginx"
+          ansible-playbook -i inventory/inventory.ini playbooks/cd.yml
