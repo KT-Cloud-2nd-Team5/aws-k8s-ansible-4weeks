@@ -1,5 +1,5 @@
 ---
-# [추가] 1. Helm 미설치 시 자동 설치 (가장 편한 방법)
+# 1. Helm 미설치 시 자동 설치
 - name: Helm 설치 여부 확인
   command: helm version
   register: helm_check
@@ -15,7 +15,7 @@
   become: true
 
 # 2. 필수 라이브러리 및 도구 설치
-- name: pip3 설치 (파이썬 라이브러리 관리용)
+- name: pip3 설치 
   become: true
   apt:
     name: 
@@ -24,7 +24,7 @@
     state: present
     update_cache: yes
 
-- name: Prometheus Agent용 파이썬 라이브러리 설치 (pip 사용)
+- name: Prometheus Agent용 파이썬 라이브러리 설치
   become: true
   ansible.builtin.pip:
     name:
@@ -36,13 +36,13 @@
   retries: 5
   delay: 10
 
-# [추가] 3. Prometheus Community Helm 저장소 추가 (에이전트 배포 전 필수)
+# 3. Prometheus Community Helm 저장소 추가 
 - name: Prometheus Community Helm 저장소 추가
   kubernetes.core.helm_repository:
     name: prometheus-community
     repo_url: "https://prometheus-community.github.io/helm-charts"
 
-# 4. Prometheus Agent 배포 (에이전트 모드 최적화)
+# 4. Prometheus Agent 배포 
 - name: Prometheus Agent 배포
   become: true
   kubernetes.core.helm:
@@ -50,11 +50,9 @@
     chart_ref: prometheus-community/prometheus
     release_namespace: "{{ my_ns | default('monitoring') }}"
     create_namespace: true
-    # k3s의 기본 kubeconfig 경로 사용
     kubeconfig: /etc/rancher/k3s/k3s.yaml
     wait: true
     values:
-      # 에이전트 전용 모드 활성화
       deploymentMode: agent
 
       server:
@@ -66,7 +64,7 @@
           repository: quay.io/prometheus/prometheus
           tag: v2.45.0
 
-        # 중앙 서버로 데이터를 쏴주는 핵심 설정
+        # remote-write 설정
         remoteWrite:
           - url: "http://{{ central_prometheus_ip }}:9090/api/v1/write"
 
