@@ -2,7 +2,7 @@
 
   on:
     push:
-      branches: ["main"] # main 브랜치에 코드가 push될 때 실행
+      branches: ["hoseong"] # main 브랜치에 코드가 push될 때 실행
       paths:             # 아래 폴더나 파일이 변경되었을 때만 실행
         - "playbooks/**"
         - "roles/**"
@@ -62,8 +62,6 @@
             # 3. 앤서블 갤럭시를 이용한 컬렉션 설치
             # --force 플래그를 사용해 기존 버전과의 충돌을 방지하고 새로 설치합니다.
             ansible-galaxy collection install community.docker kubernetes.core amazon.aws --force
-            
-            # dynamic inventory를 위해
 
         # [디버깅용] 파일이 잘 보이는지 확인 (성공 후 삭제 가능)
         - name: Debug - Check File Existence
