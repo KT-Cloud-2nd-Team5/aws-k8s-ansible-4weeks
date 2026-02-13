@@ -3,14 +3,12 @@
 
 - name: Install K3s agent and join cluster (dynamic proxy)
   become: true
+  environment: "{{ proxy_env }}"
   shell: |
     set -eu
     
     # 해당 호스트에 proxy_url 변수가 정의되어 있는지 확인 (db 그룹 등)
     {% if proxy_url is defined and group_names[0] == 'db' %}
-    export http_proxy="{{ proxy_url }}"
-    export https_proxy="{{ proxy_url }}"
-    export no_proxy="{{ no_proxy_list }},{{ hostvars[groups['master'][0]].ansible_host }}"
     CURL_OPT="--proxy {{ proxy_url }} -4"
     {% else %}
     CURL_OPT=""

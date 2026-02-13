@@ -3,12 +3,9 @@
 
 - name: Install K3s server on master (optimized proxy)
   become: true
+  environment: "{{ proxy_env }}"
   shell: |
     set -eu
-    # 전역 변수에서 프록시 설정 로드
-    export http_proxy="{{ proxy_url }}"
-    export https_proxy="{{ proxy_url }}"
-    export no_proxy="{{ no_proxy_list }},{{ ansible_host }}"
 
     # IPv4 강제 및 프록시를 통한 설치 스크립트 다운로드
     curl -4 --proxy "{{ proxy_url }}" -fL https://get.k3s.io -o /tmp/k3s_install.sh
