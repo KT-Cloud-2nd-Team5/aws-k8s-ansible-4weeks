@@ -21,7 +21,9 @@ jobs:
 
     env:
       DOCKER_IMAGE: "kimkiyeol/web-app"   # DockerHub repo (팀 공용이면 여기만 바꾸면 됨)
-
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: ap-northeast-2
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
