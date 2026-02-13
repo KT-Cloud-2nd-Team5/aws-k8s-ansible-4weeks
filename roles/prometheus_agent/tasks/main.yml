@@ -32,8 +32,6 @@
 - name: (우회) kubernetes 라이브러리 설치
   become: true
   shell: |
-    export http_proxy="{{ proxy_url }}"
-    export https_proxy="{{ proxy_url }}"
     /usr/local/bin/pip3 install kubernetes
   args:
     executable: /bin/bash
