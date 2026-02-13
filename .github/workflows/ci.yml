@@ -87,5 +87,5 @@ jobs:
       - name: Deploy (Ansible CD)
         run: |
           set -e
-          ansible-playbook -i inventory/aws_ec3.yml -i inventory/static.ini playbooks/cd.yml \
+          ansible-playbook -i inventory/aws_ec2.yml -i inventory/static.ini playbooks/cd.yml \
             -e "image_full=${IMAGE_LATEST} namespace=default deployment=web-nginx container=nginx"
