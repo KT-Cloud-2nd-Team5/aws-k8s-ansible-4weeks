@@ -3,145 +3,399 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>5팀 운동 많이 된다 미니 프로젝트 테스트 페이지</title>
+  <title>케클업 2기 · 5팀 운동많이된다 | Mini Project</title>
+
   <style>
     :root {
-      --bg-main: #020617;
-      --bg-card: rgba(15, 23, 42, 0.85);
-      --accent: #38bdf8;
-      --accent-soft: #60a5fa;
-      --text-main: #e5e7eb;
-      --text-sub: #9ca3af;
+      --bg: #060814;
+      --card: rgba(255, 255, 255, 0.06);
+      --card-strong: rgba(255, 255, 255, 0.10);
+      --stroke: rgba(255, 255, 255, 0.10);
+
+      --text: #e8eaf0;
+      --muted: rgba(232, 234, 240, 0.70);
+
+      --accent1: #a78bfa;  /* purple */
+      --accent2: #22c55e;  /* green */
+      --accent3: #38bdf8;  /* sky */
+      --shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+      --radius: 22px;
     }
 
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-        'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
     }
 
     body {
       min-height: 100vh;
-      background: radial-gradient(circle at top, #020617, #020617 40%, #020617);
-      color: var(--text-main);
+      color: var(--text);
+      background:
+        radial-gradient(900px 500px at 10% 10%, rgba(167, 139, 250, 0.20), transparent 60%),
+        radial-gradient(800px 520px at 90% 20%, rgba(34, 197, 94, 0.16), transparent 60%),
+        radial-gradient(900px 700px at 50% 120%, rgba(56, 189, 248, 0.10), transparent 60%),
+        linear-gradient(180deg, #050612 0%, #050612 55%, #060814 100%);
       display: flex;
       align-items: center;
       justify-content: center;
+      padding: 28px;
     }
 
-    .wrapper {
+    .container {
       width: 100%;
-      max-width: 900px;
-      padding: 48px 24px;
+      max-width: 980px;
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+      gap: 26px;
     }
 
-    header {
-      text-align: center;
-      margin-bottom: 56px;
+    /* Left panel */
+    .panel {
+      background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.04));
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 26px;
+      position: relative;
+      overflow: hidden;
     }
 
-    header h1 {
-      font-size: 2.6rem;
+    .panel::before {
+      content: "";
+      position: absolute;
+      inset: -120px -140px auto auto;
+      width: 320px;
+      height: 320px;
+      background: radial-gradient(circle, rgba(167, 139, 250, 0.35), transparent 60%);
+      filter: blur(2px);
+      transform: rotate(18deg);
+      pointer-events: none;
+    }
+
+    .badge {
+      display: inline-flex;
+      gap: 10px;
+      align-items: center;
+      padding: 9px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(0, 0, 0, 0.18);
+      font-size: 0.86rem;
+      color: var(--muted);
       margin-bottom: 14px;
-      letter-spacing: -0.02em;
-      background: linear-gradient(90deg, var(--accent), var(--accent-soft));
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--accent2);
+      box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.12);
+    }
+
+    .title {
+      font-size: 2.05rem;
+      letter-spacing: -0.03em;
+      line-height: 1.18;
+      margin-bottom: 10px;
+      background: linear-gradient(90deg, var(--accent1), var(--accent3));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
-    header p {
-      font-size: 1.05rem;
-      color: var(--text-sub);
-      line-height: 1.6;
+    .subtitle {
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 0.98rem;
+      margin-bottom: 18px;
+    }
+
+    .meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 18px 0 18px;
+    }
+
+    .meta .item {
+      border: 1px solid var(--stroke);
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      padding: 12px 12px;
+    }
+
+    .meta .k {
+      color: var(--muted);
+      font-size: 0.82rem;
+      margin-bottom: 6px;
+    }
+    .meta .v {
+      font-size: 0.98rem;
+      letter-spacing: -0.01em;
+    }
+
+    .cta {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      border-radius: 14px;
+      padding: 11px 14px;
+      border: 1px solid var(--stroke);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.95rem;
+      transition: transform 0.22s ease, background 0.22s ease, box-shadow 0.22s ease;
+      user-select: none;
+    }
+
+    .btn:hover {
+      transform: translateY(-3px);
+      background: rgba(255, 255, 255, 0.09);
+      box-shadow: 0 14px 30px rgba(0,0,0,0.35);
+    }
+
+    .btn.primary {
+      border-color: rgba(167, 139, 250, 0.35);
+      background: linear-gradient(90deg, rgba(167, 139, 250, 0.22), rgba(56, 189, 248, 0.16));
+    }
+
+    .btn .icon {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      background: var(--accent1);
+      box-shadow: 0 0 0 6px rgba(167, 139, 250, 0.12);
+    }
+
+    /* Right side cards */
+    .grid {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 16px;
+    }
+
+    .topbar {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius);
+      padding: 18px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .topbar .label {
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(0, 0, 0, 0.15);
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+
+    .status .pulse {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent2);
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5);
+      animation: pulse 1.4s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.45); }
+      70% { box-shadow: 0 0 0 12px rgba(34, 197, 94, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
     }
 
     .cards {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 28px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
     }
 
     .card {
-      background: var(--bg-card);
-      border-radius: 22px;
-      padding: 30px;
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
-      transition: transform 0.25s ease, box-shadow 0.25s ease;
+      border-radius: var(--radius);
+      border: 1px solid var(--stroke);
+      background: var(--card);
+      padding: 18px 18px;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
+      transition: transform 0.22s ease, background 0.22s ease;
+      position: relative;
+      overflow: hidden;
     }
 
     .card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 22px 48px rgba(0, 0, 0, 0.6);
+      transform: translateY(-5px);
+      background: var(--card-strong);
     }
 
     .card h2 {
-      font-size: 1.3rem;
-      margin-bottom: 12px;
-      color: var(--accent);
+      font-size: 1.08rem;
+      margin-bottom: 10px;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .chip {
+      width: 12px;
+      height: 12px;
+      border-radius: 4px;
+      background: var(--accent3);
+      box-shadow: 0 0 0 6px rgba(56, 189, 248, 0.12);
+      flex: 0 0 auto;
     }
 
     .card p {
-      font-size: 0.95rem;
-      color: var(--text-sub);
+      color: var(--muted);
       line-height: 1.7;
+      font-size: 0.94rem;
     }
+
+    .card.small h2 .chip { background: var(--accent1); box-shadow: 0 0 0 6px rgba(167, 139, 250, 0.12); }
+    .card.green h2 .chip { background: var(--accent2); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.12); }
 
     footer {
-      margin-top: 64px;
-      text-align: center;
+      color: var(--muted);
       font-size: 0.85rem;
-      color: var(--text-sub);
+      text-align: right;
+      padding: 8px 4px 0;
     }
 
-    footer strong {
-      color: var(--accent);
-      font-weight: 600;
+    footer strong { color: var(--accent1); font-weight: 650; }
+
+    /* responsive */
+    @media (max-width: 920px) {
+      .container { grid-template-columns: 1fr; }
+      .cards { grid-template-columns: 1fr; }
+      footer { text-align: left; }
     }
   </style>
 </head>
+
 <body>
-  <div class="wrapper">
-    <header>
-      <h1>케클업 2기 미니 프로젝트 테스트 페이지</h1>
-      <p>
-        by 5팀<br />
-        인프라 · 백엔드 · DevOps 실험용 메인 화면
+  <main class="container">
+    <!-- LEFT: identity / summary -->
+    <section class="panel" aria-label="프로젝트 요약">
+      <div class="badge">
+        <span class="dot" aria-hidden="true"></span>
+        <span>RUNNING · Mini Project Landing</span>
+      </div>
+
+      <h1 class="title">케클업 2기<br/>5팀 운동많이된다</h1>
+
+      <p class="subtitle">
+        인프라 · 백엔드 · DevOps 검증용 메인 페이지입니다.<br/>
+        배포/라우팅/모니터링 구성 변화가 생기면 이 화면에서 바로 확인합니다.
       </p>
-    </header>
 
-    <section class="cards">
-      <div class="card">
-        <h2>About This Page</h2>
-        <p>
-          본 페이지는 운동많이된다 팀이 제작한 케클업 2기 미니 프로젝트의
-          테스트용 메인 웹 페이지입니다. 서버 배포 및 네트워크
-          구성을 검증하기 위한 목적으로 사용됩니다.
-        </p>
+      <div class="meta">
+        <div class="item">
+          <div class="k">Environment</div>
+          <div class="v">AWS · EC2 · K3s</div>
+        </div>
+        <div class="item">
+          <div class="k">Role Focus</div>
+          <div class="v">Infra / CI-CD</div>
+        </div>
+        <div class="item">
+          <div class="k">Owner</div>
+          <div class="v">5팀</div>
+        </div>
+        <div class="item">
+          <div class="k">Year</div>
+          <div class="v">2026</div>
+        </div>
       </div>
 
-      <div class="card">
-        <h2>Tech Stack</h2>
-        <p>
-          AWS EC2 · ALB · Nginx · Docker · Kubernetes(K3s)
-          등 인프라 및 운영 환경을 테스트하고 확장하기 위한
-          기술 스택을 기반으로 구성되었습니다.
-        </p>
-      </div>
+      <div class="cta">
+        <a class="btn primary" href="#" onclick="alert('헬스 체크 API 연결 전입니다.'); return false;">
+          <span class="icon" aria-hidden="true"></span>
+          헬스 체크(예정)
+        </a>
 
-      <div class="card">
-        <h2>Future Plan</h2>
-        <p>
-          헬스 체크 API, CI/CD 배포 정보, 환경 변수 출력,
-          모니터링 대시보드 등으로 점진적 확장을 계획하고 있습니다.
-        </p>
+        <a class="btn" href="#" onclick="alert('모니터링 대시보드 연결 전입니다.'); return false;">
+          <span class="icon" aria-hidden="true" style="background: var(--accent2); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.12);"></span>
+          모니터링
+        </a>
       </div>
     </section>
 
-    <footer>
-      <p>© 2026 <strong>5팀 운동많이된다</strong> · KecleUp 2nd Mini Project Test Page</p>
-    </footer>
-  </div>
+    <!-- RIGHT: cards / content -->
+    <section class="grid" aria-label="프로젝트 내용">
+      <div class="topbar">
+        <div>
+          <div class="label">Mini Project Test Page</div>
+          <div style="margin-top:6px; font-size:1.05rem; letter-spacing:-0.01em;">
+            배포 검증용 UI · 구성 변경 확인
+          </div>
+        </div>
+        <div class="status" title="서비스 상태 표시(데모)">
+          <span class="pulse" aria-hidden="true"></span>
+          <span>Service OK</span>
+        </div>
+      </div>
+
+      <div class="cards">
+        <article class="card small">
+          <h2><span class="chip" aria-hidden="true"></span>What Changed</h2>
+          <p>
+            화이팅
+          </p>
+        </article>
+
+        <article class="card green">
+          <h2><span class="chip" aria-hidden="true"></span>Traffic / Routing</h2>
+          <p>
+            현재는 NodePort/포트 기반 분배 방식을 사용중이며,
+            이후 Ingress/ALB 구조로 정리하는 단계를 예정하고 있습니다.
+          </p>
+        </article>
+
+        <article class="card">
+          <h2><span class="chip" aria-hidden="true"></span>Tech Stack</h2>
+          <p>
+            AWS EC2 · ALB · Nginx · Docker · Kubernetes(K3s) · GitHub Actions
+            기반으로 배포/운영 자동화를 확장하는 흐름을 전제로 구성됩니다.
+          </p>
+        </article>
+
+        <article class="card">
+          <h2><span class="chip" aria-hidden="true"></span>Next Items</h2>
+          <p>
+            헬스 체크 API, 배포 버전 표시, 환경 변수/빌드 정보 노출, Grafana 링크,
+            간단한 상태 페이지(Status)로 확장 예정입니다.
+          </p>
+        </article>
+      </div>
+
+      <footer>
+        © 2026 <strong>5팀 운동많이된다</strong> · KecleUp 2nd Mini Project
+      </footer>
+    </section>
+  </main>
 </body>
 </html>
+
