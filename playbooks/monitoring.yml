@@ -22,6 +22,7 @@
 
 # 3. 타겟 서버들 공통 설정 -> 'master'에서 헬름 배포 수행
 - name: 쿠버네티스 에이전트 배포
+  environment: "{{ proxy_env }}"
   hosts: master  # db, web이 아닌 master로 변경
   become: true
   roles:
