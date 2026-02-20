@@ -14,6 +14,12 @@ spec:
     metadata:
       labels:
         app: db-mysql
+      #스크랩 허용
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9104"
+        prometheus.io/job: "db-mysql"
+
     spec:
       # DB 노드에만 배치되도록 설정 (해당 노드에 node-role=db 라벨이 있어야 함)
       nodeSelector:
@@ -53,6 +59,19 @@ spec:
             - name: mysql-local-storage
               mountPath: /var/lib/mysql
 
+        #nginx exporter 설치
+        - name: mysql-exporter
+          image: prom/mysqld-exporter:latest
+          env:
+            - name: DATA_SOURCE_NAME
+              value: "root:rootpass1234@(localhost:3306)/"
+          ports:
+            - containerPort: 9104
+              name: metrics
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "32Mi"
       volumes:
         - name: mysql-local-storage
           hostPath:
@@ -73,6 +92,9 @@ spec:
     - port: 3306
       targetPort: 3306
       name: mysql
+    - port: 9104
+      targetPort: 9104
+      name: metrics
   clusterIP: None # Headless Service: StatefulSet의 개별 Pod IP에 직접 접근
   selector:
     app: db-mysql
