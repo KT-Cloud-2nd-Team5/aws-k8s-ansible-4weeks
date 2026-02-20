@@ -37,11 +37,14 @@ spec:
       containers:
         - name: mysql
           image: mysql:8.0
+          args:
+            - "--default-authentication-plugin=mysql_native_password"
+            - "--performance_schema=ON"
+            - "--skip-log-error"
           ports:
             - containerPort: 3306
               name: mysql
           env:
-            # 실무에서는 Secret 사용을 권장합니다
             - name: MYSQL_ROOT_PASSWORD
               value: "rootpass1234"
             - name: MYSQL_DATABASE
@@ -59,12 +62,13 @@ spec:
             - name: mysql-local-storage
               mountPath: /var/lib/mysql
 
-        #nginx exporter 설치
+        # mysql exporter 설치
         - name: mysql-exporter
-          image: prom/mysqld-exporter:latest
-          env:
-            - name: DATA_SOURCE_NAME
-              value: "root:rootpass1234@(localhost:3306)/"
+          image: prom/mysqld-exporter:v0.15.0
+          # 환경 변수가 씹히는 현상을 방지하기 위해 args로 직접 주입
+          args:
+            - "--mysqld.address=127.0.0.1:3306"
+            - "--mysqld.username=root:rootpass1234"
           ports:
             - containerPort: 9104
               name: metrics
@@ -95,6 +99,6 @@ spec:
     - port: 9104
       targetPort: 9104
       name: metrics
-  clusterIP: None # Headless Service: StatefulSet의 개별 Pod IP에 직접 접근
+  clusterIP: None
   selector:
     app: db-mysql
