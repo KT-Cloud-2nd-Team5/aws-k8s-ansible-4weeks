@@ -18,6 +18,14 @@ spec:
       # DB 노드에만 배치되도록 설정
       nodeSelector:
         node-role: db
+        
+    initContainers:
+      - name: fix-permissions
+        image: busybox
+        command: ["sh", "-c", "chown -R 999:999 /var/lib/mysql"]
+        volumeMounts:
+        - name: mysql-local-storage
+          mountPath: /var/lib/mysql
 
       containers:
       - name: mysql
