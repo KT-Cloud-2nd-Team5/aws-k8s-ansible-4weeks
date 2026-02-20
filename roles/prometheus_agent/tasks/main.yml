@@ -90,7 +90,7 @@
               regex: (.+)
       server:
         remoteWrite:
-          - url: "http://{{ proxy_url }}:9090/api/v1/write"
+          - url: "http://{{ proxy_server_ip }}:9090/api/v1/write"
 
   environment:
     http_proxy: "{{ proxy_url }}"
