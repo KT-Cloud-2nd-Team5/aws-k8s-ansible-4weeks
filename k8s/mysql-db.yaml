@@ -15,45 +15,50 @@ spec:
       labels:
         app: db-mysql
     spec:
-      # DB 노드에만 배치되도록 설정
+      # DB 노드에만 배치되도록 설정 (해당 노드에 node-role=db 라벨이 있어야 함)
       nodeSelector:
         node-role: db
 
+      # 초기화 컨테이너: HostPath 폴더의 권한을 mysql 유저(999)로 변경
+      initContainers:
+        - name: fix-permissions
+          image: busybox
+          command: ["sh", "-c", "chown -R 999:999 /var/lib/mysql"]
+          volumeMounts:
+            - name: mysql-local-storage
+              mountPath: /var/lib/mysql
+
       containers:
-      - name: mysql
-        image: mysql:8.0
-        ports:
-        - containerPort: 3306
-          name: mysql
-        env:
-        # 비밀번호 secret으로 분리 필요
-        - name: MYSQL_ROOT_PASSWORD
-          value: "rootpass1234"
-        - name: MYSQL_DATABASE
-          value: "appdb"
-        
-        resources:
-          requests:
-            cpu: "100m"
-            memory: "256Mi"
-          limits:
-            cpu: "400m"
-            memory: "512Mi"
+        - name: mysql
+          image: mysql:8.0
+          ports:
+            - containerPort: 3306
+              name: mysql
+          env:
+            # 실무에서는 Secret 사용을 권장합니다
+            - name: MYSQL_ROOT_PASSWORD
+              value: "rootpass1234"
+            - name: MYSQL_DATABASE
+              value: "appdb"
 
-        # 컨테이너 내부의 마운트 위치
-        volumeMounts:
-        - name: mysql-local-storage
-          mountPath: /var/lib/mysql
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "400m"
+              memory: "512Mi"
 
-      # statefulset을 위한 마운트 사용
+          volumeMounts:
+            - name: mysql-local-storage
+              mountPath: /var/lib/mysql
+
       volumes:
-      - name: mysql-local-storage
-        hostPath:
-          # EC2 인스턴스(Node)의 실제 물리적 경로
-          path: /data/mysql-data
-          # 폴더가 없으면 자동으로 생성
-          type: DirectoryOrCreate
-
+        - name: mysql-local-storage
+          hostPath:
+            # EC2 인스턴스(Node)의 실제 물리적 경로
+            path: /data/mysql-data
+            type: DirectoryOrCreate
 
 ---
 apiVersion: v1
@@ -65,9 +70,9 @@ metadata:
     app: db-mysql
 spec:
   ports:
-  - port: 3306
-    targetPort: 3306
-    name: mysql
-  clusterIP: None          # 로드밸런싱 없이 파드 IP 직접 반환 (statefulset이여서)
+    - port: 3306
+      targetPort: 3306
+      name: mysql
+  clusterIP: None # Headless Service: StatefulSet의 개별 Pod IP에 직접 접근
   selector:
     app: db-mysql
