@@ -66,10 +66,32 @@
     kubeconfig: /etc/rancher/k3s/k3s.yaml
     wait: true
     values:
+      # 최신 헬름 차트에서 에이전트 모드를 활성화하는 통합 스위치
       deploymentMode: agent
+
       server:
+        enabled: true
+        # 저장소 사용 안 함 (노드 어피니티/PVC 부족으로 인한 Pending 해결)
+        persistentVolume:
+          enabled: false
+
+        # 수동 nc/curl 테스트로 검증된 목적지 설정
         remoteWrite:
           - url: "http://{{ proxy_server_ip }}:9090/api/v1/write"
+
+        # 프로메테우스 바이너리 레벨에서 에이전트 전용 기능 활성화
+        extraArgs:
+          enable-feature: agent
+
+      # 중앙 모니터링 서버가 있으므로 에이전트 측은 비활성화
+      alertmanager:
+        enabled: false
+      pushgateway:
+        enabled: false
+
+      # 로컬 저장을 하지 않으므로 보존 기간을 최소화 (메모리 절약)
+      retention: 1h
+
   environment:
     http_proxy: "{{ proxy_url }}"
     https_proxy: "{{ proxy_url }}"

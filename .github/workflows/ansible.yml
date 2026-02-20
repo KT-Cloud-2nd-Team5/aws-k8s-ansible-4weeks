@@ -1,86 +1,86 @@
-  name: Ansible CI/CD (Bastion Runner) # GitHub Actions 탭에 표시될 워크플로우 이름
+name: Ansible CI/CD (Bastion Runner) # GitHub Actions 탭에 표시될 워크플로우 이름
 
-  on:
-    push:
-      branches:
-        - "main"
-        - "test-cicd"
-      paths:             # 아래 폴더나 파일이 변경되었을 때만 실행
-        - "playbooks/**"
-        - "roles/**"
-        - "inventory/**"
-        - "group_vars/**"
-        - "ansible.cfg"
-        - ".github/workflows/ansible.yml"
+on:
+  push:
+    branches:
+      - "main"
+      - "test-cicd"
+    paths: # 아래 폴더나 파일이 변경되었을 때만 실행
+      - "playbooks/**"
+      - "roles/**"
+      - "inventory/**"
+      - "group_vars/**"
+      - "ansible.cfg"
+      - ".github/workflows/ansible.yml"
 
-    workflow_dispatch: # 수동 실행 기능
+  workflow_dispatch: # 수동 실행 기능
 
-  jobs:
-    ansible-site:
-      runs-on: self-hosted  # AWS Bastion 서버에서 실행
+jobs:
+  ansible-site:
+    runs-on: self-hosted # AWS Bastion 서버에서 실행
 
-      # workflow_run 트리거일 경우, CI가 성공했을 때만 실행
-      if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    # workflow_run 트리거일 경우, CI가 성공했을 때만 실행
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
 
-      env:
-        ANSIBLE_HOST_KEY_CHECKING: "False"
-        ANSIBLE_SSH_COMMON_ARGS: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-        DOCKER_IMAGE: "kimkiyeol/web-app"
+    env:
+      ANSIBLE_HOST_KEY_CHECKING: "False"
+      ANSIBLE_SSH_COMMON_ARGS: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+      DOCKER_IMAGE: "kimkiyeol/web-app"
 
-      steps:
-        - name: Checkout code
-          # [핵심 수정 2] 복잡한 ref 설정을 제거하고 기본값(최신 코드) 사용
-          uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        # [핵심 수정 2] 복잡한 ref 설정을 제거하고 기본값(최신 코드) 사용
+        uses: actions/checkout@v4
 
-        - name: Load SSH key (ssh-agent)
-          # 대상 서버 접속용 SSH 키 로드
-          uses: webfactory/ssh-agent@v0.9.0
-          with:
-            ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Load SSH key (ssh-agent)
+        # 대상 서버 접속용 SSH 키 로드
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-        - name: Verify SSH agent
-          run: |
-            ssh-add -l
+      - name: Verify SSH agent
+        run: |
+          ssh-add -l
 
-        - name: Install Ansible
-          # Runner에 Ansible이 없으면 설치
-          run: |
+      - name: Install Ansible
+        # Runner에 Ansible이 없으면 설치
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible
+
+      - name: Setup Ansible and Collections
+        run: |
+          # 1. pip3 설치 여부 확인 및 설치 (공백 주의: 'if!')
+          if ! command -v pip3 &> /dev/null; then
             sudo apt-get update
-            sudo apt-get install -y ansible
+            sudo apt-get install -y python3-pip
+          fi
 
-        - name: Setup Ansible and Collections
-          run: |
-            # 1. pip3 설치 여부 확인 및 설치 (공백 주의: 'if!')
-            if ! command -v pip3 &> /dev/null; then
-              sudo apt-get update
-              sudo apt-get install -y python3-pip
-            fi
-        
-            # 2. pip 및 Ansible 엔진 업그레이드
-            # 엔진을 2.15~2.17 이상으로 올려야 최신 도커/쿠버네티스 컬렉션이 작동합니다.
-            python3 -m pip install --upgrade pip
-            pip3 install -U ansible-core
+          # 2. pip 및 Ansible 엔진 업그레이드
+          # 엔진을 2.15~2.17 이상으로 올려야 최신 도커/쿠버네티스 컬렉션이 작동합니다.
+          python3 -m pip install --upgrade pip
+          pip3 install -U ansible-core
 
-            # 3. 앤서블 갤럭시를 이용한 컬렉션 설치
-            # --force 플래그를 사용해 기존 버전과의 충돌을 방지하고 새로 설치합니다.
-            ansible-galaxy collection install community.docker kubernetes.core --force
+          # 3. 앤서블 갤럭시를 이용한 컬렉션 설치
+          # --force 플래그를 사용해 기존 버전과의 충돌을 방지하고 새로 설치합니다.
+          ansible-galaxy collection install community.docker kubernetes.core --force
 
-        # [디버깅용] 파일이 잘 보이는지 확인 (성공 후 삭제 가능)
-        - name: Debug - Check File Existence
-          run: |
-            ls -l playbooks/site.yml
+      # [디버깅용] 파일이 잘 보이는지 확인 (성공 후 삭제 가능)
+      - name: Debug - Check File Existence
+        run: |
+          ls -l playbooks/site.yml
 
-        - name: Connectivity check
-          # 통신 확인
-          run: |
-            ansible -i inventory/inventory.ini all -m ping
+      - name: Connectivity check
+        # 통신 확인
+        run: |
+          ansible -i inventory/inventory.ini all -m ping
 
-        - name: Syntax check (site.yml)
-          # 문법 검사
-          run: |
-            ansible-playbook -i inventory/inventory.ini playbooks/site.yml --syntax-check
+      - name: Syntax check (site.yml)
+        # 문법 검사
+        run: |
+          ansible-playbook -i inventory/inventory.ini playbooks/site.yml --syntax-check
 
-        - name: Run site.yml
-          # 실제 플레이북 실행
-          run: |
-            ansible-playbook -i inventory/inventory.ini playbooks/site.yml
+      - name: Run site.yml
+        # 실제 플레이북 실행
+        run: |
+          ansible-playbook -i inventory/inventory.ini playbooks/site.yml
