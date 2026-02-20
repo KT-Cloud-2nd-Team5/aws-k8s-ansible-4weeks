@@ -14,46 +14,64 @@ spec:
     metadata:
       labels:
         app: db-mysql
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9104"
+        prometheus.io/job: "mysql"
+
     spec:
       # DB 노드에만 배치되도록 설정
       nodeSelector:
         node-role: db
 
       containers:
-      - name: mysql
-        image: mysql:8.0
-        ports:
-        - containerPort: 3306
-          name: mysql
-        env:
-        # 비밀번호 secret으로 분리 필요
-        - name: MYSQL_ROOT_PASSWORD
-          value: "rootpass1234"
-        - name: MYSQL_DATABASE
-          value: "appdb"
-        
-        resources:
-          requests:
-            cpu: "100m"
-            memory: "256Mi"
-          limits:
-            cpu: "400m"
-            memory: "512Mi"
+        - name: mysql
+          image: mysql:8.0
+          ports:
+            - containerPort: 3306
+              name: mysql
+          env:
+            # 비밀번호 secret으로 분리 필요
+            - name: MYSQL_ROOT_PASSWORD
+              value: "rootpass1234"
+            - name: MYSQL_DATABASE
+              value: "appdb"
 
-        # 컨테이너 내부의 마운트 위치
-        volumeMounts:
-        - name: mysql-local-storage
-          mountPath: /var/lib/mysql
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "400m"
+              memory: "512Mi"
 
+          # 컨테이너 내부의 마운트 위치
+          volumeMounts:
+            - name: mysql-local-storage
+              mountPath: /var/lib/mysql
+
+        - name: mysql-exporter
+          image: prom/mysqld-exporter:latest
+          env:
+            # MySQL 접속 정보 (사용자:비밀번호@(호스트:포트)/)
+            # 사이드카이므로 localhost로 접속하면 됩니다.
+            - name: DATA_SOURCE_NAME
+              value: "root:rootpass1234@(localhost:3306)/"
+          ports:
+            - containerPort: 9104
+              name: metrics
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "32Mi"
       # statefulset을 위한 마운트 사용
       volumes:
-      - name: mysql-local-storage
-        hostPath:
-          # EC2 인스턴스(Node)의 실제 물리적 경로
-          path: /data/mysql-data
-          # 폴더가 없으면 자동으로 생성
-          type: DirectoryOrCreate
-
+        - name: mysql-local-storage
+          hostPath:
+            # EC2 인스턴스(Node)의 실제 물리적 경로
+            path: /data/mysql-data
+            # 폴더가 없으면 자동으로 생성
+            type: DirectoryOrCreate
 
 ---
 apiVersion: v1
@@ -65,9 +83,12 @@ metadata:
     app: db-mysql
 spec:
   ports:
-  - port: 3306
-    targetPort: 3306
-    name: mysql
-  clusterIP: None          # 로드밸런싱 없이 파드 IP 직접 반환 (statefulset이여서)
+    - port: 3306
+      targetPort: 3306
+      name: mysql
+    - port: 9104
+      targetPort: 9104
+      name: metrics
+  clusterIP: None # 로드밸런싱 없이 파드 IP 직접 반환 (statefulset이여서)
   selector:
     app: db-mysql

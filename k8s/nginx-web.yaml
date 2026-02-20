@@ -1,28 +1,65 @@
+#  Nginx 내부 설정을 외부에서 주입하기 위한 ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web-nginx-config
+  namespace: default
+data:
+  # 이미지 수정 없이 stub_status를 활성화하는 설정 파일 내용
+  default.conf: |
+    server {
+        listen 80;
+        server_name localhost;
+
+        location / {
+            root   /usr/share/nginx/html;
+            index  index.html index.htm;
+        }
+
+        # 익스포터가 Nginx 상태를 읽어갈 수 있도록 경로 개방
+        location /stub_status {
+            stub_status on;
+            access_log off;
+            allow 127.0.0.1;   # 내부 통신만 허용
+            deny all;
+        }
+    }
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: web-nginx                
-  namespace: default      
+  name: web-nginx
+  namespace: default
 spec:
-  replicas: 2                     
+  replicas: 2
   selector:
     matchLabels:
-      app: web-nginx              # deployment가 관리하는 라벨, 이 라벨을 가진 pod만 관리
+      app: web-nginx
   template:
     metadata:
       labels:
-        app: web-nginx            # deployment가 생성하는 pod에 붙는 라벨
+        app: web-nginx
+      # 프로메테우스가 이 파드를 자동으로 찾아오게 만드는 힌트
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9113"
+        prometheus.io/job: "nginx"
     spec:
-      # 생성하는 pod를 web 노드에만 배치
       nodeSelector:
         node-role: web
-
       containers:
+        # ---  Nginx 컨테이너 영역 ---
         - name: nginx
           image: kimkiyeol/web-app:latest
-          imagePullPolicy: Always                
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
+          #  ConfigMap에 적힌 설정을 Nginx 설정 폴더에 꽂아넣음
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
           resources:
             requests:
               cpu: "50m"
@@ -31,18 +68,42 @@ spec:
               cpu: "200m"
               memory: "128Mi"
 
+        # 메트릭 추출용 사이드카 컨테이너
+        - name: nginx-exporter
+          image: nginx/nginx-prometheus-exporter:latest
+          args:
+            # 위에서 열어준 /stub_status 경로로 접속하여 데이터를 가져옴
+            - -nginx.scrape-uri=http://localhost:80/stub_status
+          ports:
+            - containerPort: 9113
+              name: metrics
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "32Mi"
+
+      # ConfigMap을 파드 내에서 볼륨으로 인식하도록 정의
+      volumes:
+        - name: config-volume
+          configMap:
+            name: web-nginx-config
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: web-nginx-svc 
+  name: web-nginx-svc
   namespace: default
 spec:
   selector:
-    app: web-nginx                # service는 pod 이름 대신 label을 기준으로 트래픽을 전달
+    app: web-nginx
   ports:
     - name: http
-      port: 80                    # 클러스터 내부에서 접근할 포트
-      targetPort: 80              # 실제 컨테이너 포트
-      nodePort: 30080            # 외부에서 접속할 포트
+      port: 80
+      targetPort: 80
+      nodePort: 30080
+    # 프로메테우스 에이전트가 접근할 수 있도록 포트 추가 개방
+    - name: metrics
+      port: 9113
+      targetPort: 9113
   type: NodePort
