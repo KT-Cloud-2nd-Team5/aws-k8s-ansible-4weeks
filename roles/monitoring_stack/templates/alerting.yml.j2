@@ -10,16 +10,15 @@ contactPoints:
         type: discord
         settings:
           url: "{{ alert_webhook_url }}"
-          # 유용한 팁: 알림 메시지에 상태(Alerting/Resolved)를 제목에 표시하도록 설정 가능합니다.
 
 # 2. 알림 라우팅 정책
 policies:
   - orgId: 1
     receiver: 'Discord-Alert'
     group_by: ['alertname', 'instance']
-    group_wait: '30s'      # 동일 알림 발생 시 대기 시간
-    group_interval: '5m'   # 동일 그룹 내 새 알림 발생 시 대기 시간
-    repeat_interval: '4h'  # 해결되지 않은 알림 재전송 간격
+    group_wait: '30s'
+    group_interval: '5m'
+    repeat_interval: '4h'
 
 # 3. 알림 규칙 통합 정의
 groups:
@@ -28,8 +27,8 @@ groups:
     folder: 'Managed-Alerts'
     interval: '1m'
     rules:
-      # --- 1. 서버 다운 알림 (Node Exporter 상태) ---
-      - uid: server_down_alert
+      # --- 1. 대상 다운 알림 (Node Exporter / App 상태) ---
+      - uid: target_down_alert
         title: 'Target Down Alert'
         condition: A
         data:
@@ -41,8 +40,8 @@ groups:
               refId: A
         for: '2m'
         annotations:
-          summary: "서버 다운 감지: {{ '{{' }} $labels.instance {{ '}}' }}"
-          description: "{{ '{{' }} $labels.instance {{ '}}' }} 서버가 2분 이상 응답하지 않습니다."
+          summary: "❌ [다운] 서비스 중단 감지 (IP: {{ '{{' }} $labels.instance {{ '}}' }})"
+          description: "타겟: {{ '{{' }} $labels.job {{ '}}' }}\n상태: 2분 이상 응답 없음\n위치: {{ '{{' }} $labels.instance {{ '}}' }}"
         labels:
           severity: critical
 
@@ -59,8 +58,8 @@ groups:
               refId: A
         for: '5m'
         annotations:
-          summary: "CPU 부하 경고"
-          description: "{{ '{{' }} $labels.instance {{ '}}' }} CPU 사용량 80% 초과 (현재: {{ '{{' }} $values.A.Value | printf \"%.2f\" {{ '}}' }}%)"
+          summary: "🔥 [CPU] 과부하 경고 (IP: {{ '{{' }} $labels.instance {{ '}}' }})"
+          description: "서버 {{ '{{' }} $labels.instance {{ '}}' }}의 CPU 사용량이 80%를 초과했습니다.\n현재 수치: {{ '{{' }} $values.A.Value | printf \"%.2f\" {{ '}}' }}%"
         labels:
           severity: warning
 
@@ -73,16 +72,16 @@ groups:
             datasourceUid: "my-prometheus"
             relativeTimeRange: { from: 300, to: 0 }
             model:
-              expr: '(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 90'
+              expr: '((node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes) * 100 > 90'
               refId: A
         for: '5m'
         annotations:
-          summary: "메모리 부족 경고"
-          description: "{{ '{{' }} $labels.instance {{ '}}' }} 메모리 사용률 90% 초과 (현재: {{ '{{' }} $values.A.Value | printf \"%.2f\" {{ '}}' }}%)"
+          summary: "⚠️ [메모리] 고갈 위기 (IP: {{ '{{' }} $labels.instance {{ '}}' }})"
+          description: "서버 {{ '{{' }} $labels.instance {{ '}}' }}의 여유 메모리가 부족합니다.\n현재 사용률: {{ '{{' }} $values.A.Value | printf \"%.2f\" {{ '}}' }}%"
         labels:
           severity: critical
 
-      # --- 4. 디스크 공간 부족 (루트 파티션 15% 미만) ---
+      # --- 4. 디스크 공간 부족 (15% 미만) ---
       - uid: disk_space_low
         title: 'Disk Space Low'
         condition: A
@@ -91,16 +90,52 @@ groups:
             datasourceUid: "my-prometheus"
             relativeTimeRange: { from: 300, to: 0 }
             model:
-              expr: 'node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} * 100 < 15'
+              expr: '(node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 15'
               refId: A
         for: '5m'
         annotations:
-          summary: "디스크 공간 부족"
-          description: "{{ '{{' }} $labels.instance {{ '}}' }} 루트(/) 파티션 여유 공간이 15% 미만입니다. (현재 여유량: {{ '{{' }} $values.A.Value | printf \"%.2f\" {{ '}}' }}%)"
+          summary: "💾 [디스크] 공간 부족 (IP: {{ '{{' }} $labels.instance {{ '}}' }})"
+          description: "서버 {{ '{{' }} $labels.instance {{ '}}' }}의 루트(/) 파티션 용량이 15% 미만입니다.\n현재 여유: {{ '{{' }} $values.A.Value | printf \"%.2f\" {{ '}}' }}%"
         labels:
           severity: warning
 
-      # --- 5. 디스크 고갈 예측 (24시간 내 만료 예상) ---
+      # --- 5. Nginx 5xx 에러 발생 (서비스 장애) ---
+      - uid: nginx_high_5xx_errors
+        title: 'Nginx High 5xx Errors'
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: "my-prometheus"
+            relativeTimeRange: { from: 300, to: 0 }
+            model:
+              expr: 'sum by (instance) (rate(nginx_http_requests_total{status=~"5.."}[5m])) > 0'
+              refId: A
+        for: '1m'
+        annotations:
+          summary: "🌐 [Nginx] 서버 에러 감지 (IP: {{ '{{' }} $labels.instance {{ '}}' }})"
+          description: "서버 {{ '{{' }} $labels.instance {{ '}}' }}에서 5xx 응답이 발생 중입니다.\n백엔드 파드 상태를 확인하세요."
+        labels:
+          severity: critical
+
+      # --- 6. MySQL 너무 많은 연결 (리소스 고갈 방지) ---
+      - uid: mysql_too_many_connections
+        title: 'MySQL Too Many Connections'
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: "my-prometheus"
+            relativeTimeRange: { from: 300, to: 0 }
+            model:
+              expr: '(mysql_global_status_threads_connected / mysql_global_variables_max_connections) * 100 > 80'
+              refId: A
+        for: '2m'
+        annotations:
+          summary: "🐬 [MySQL] 연결 수 위험 (IP: {{ '{{' }} $labels.instance {{ '}}' }})"
+          description: "DB {{ '{{' }} $labels.instance {{ '}}' }}의 최대 연결 수 대비 80%를 초과했습니다.\n현재 비율: {{ '{{' }} $values.A.Value | printf \"%.2f\" {{ '}}' }}%"
+        labels:
+          severity: warning
+
+      # --- 7. 디스크 고갈 예측 (24시간 내 만료 예상) ---
       - uid: disk_will_fill_in_24h
         title: 'Disk Prediction Alert'
         condition: A
@@ -113,7 +148,7 @@ groups:
               refId: A
         for: '10m'
         annotations:
-          summary: "디스크 고갈 위험 예측"
-          description: "{{ '{{' }} $labels.instance {{ '}}' }}의 현재 디스크 사용 추세로 볼 때, 24시간 이내에 공간이 가득 찰 것으로 예측됩니다."
+          summary: "📈 [예측] 디스크 고갈 위험 (IP: {{ '{{' }} $labels.instance {{ '}}' }})"
+          description: "인스턴스 {{ '{{' }} $labels.instance {{ '}}' }}의 사용 추세 분석 결과, 24시간 내 디스크가 가득 찰 예정입니다."
         labels:
           severity: warning
