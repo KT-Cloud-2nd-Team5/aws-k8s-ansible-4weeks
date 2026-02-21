@@ -14,9 +14,10 @@ prometheus_port: 9090
 
 # 자동 다운로드할 대시보드 정보
 dashboard_ids:
-  - { id: 1860, revision: 31 } #Node Exporter Full
-  - { id: 16378, revision: 1 } #Node Exporter Nodes
-  - { id: 14057, revision: 1 } #MySQL Overview
+  - { id: 12708, revision: 1 } # NGINX exporter
+  - { id: 1860, revision: 31 } # Node Exporter Full
+  - { id: 15282, revision: 1 } # K3S cluster monitoring
+  - { id: 7362, revision: 5 } # MySQL Overview
 # Discord 또는 Slack에서 만든 Webhook URL
 alert_webhook_url: "https://discord.com/api/webhooks/1468844118750007492/vKKoldUKN4q-olnZFcsg9_7pyxnxbb4snoAhw1VwZLZH-WmZfvo5FLCz9YKQXW8JNxpD"
 
