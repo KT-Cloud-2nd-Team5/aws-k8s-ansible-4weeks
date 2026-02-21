@@ -61,6 +61,15 @@
   loop: "{{ dashboard_ids | default([]) }}"
   when: dashboard_ids is defined
 
+- name: 대시보드 JSON 내의 누락된 변수(DS_PROMETHEUS)를 실제 이름으로 치환
+  become: true
+  replace:
+    path: "{{ monitoring_dir }}/dashboards/dashboard-{{ item.id }}.json"
+    regexp: '\$\{DS_PROMETHEUS\}'
+    replace: "Prometheus"
+  loop: "{{ dashboard_ids | default([]) }}"
+  when: dashboard_ids is defined
+
 # 5. 통합 모니터링 스택 실행
 - name: 통합 모니터링 스택 실행
   become: true
