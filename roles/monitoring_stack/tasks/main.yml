@@ -7,6 +7,7 @@
     state: absent
   loop:
     - "{{ monitoring_dir }}/provisioning"
+    - "{{ monitoring_dir }}/dashboards"
     - "{{ monitoring_dir }}/prometheus.yml"
 
 # 2. 필요한 모든 '디렉토리' 생성
