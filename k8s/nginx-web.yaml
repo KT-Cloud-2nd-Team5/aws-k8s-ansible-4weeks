@@ -32,7 +32,6 @@ metadata:
   name: web-nginx
   namespace: default
 spec:
-  replicas: 2
   selector:
     matchLabels:
       app: web-nginx
@@ -107,3 +106,24 @@ spec:
       port: 9113
       targetPort: 9113
   type: NodePort
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: web-nginx-hpa
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: web-nginx # Deployment 이름과 일치
+  minReplicas: 2 # 기존 replicas: 2 와 맞춤
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
