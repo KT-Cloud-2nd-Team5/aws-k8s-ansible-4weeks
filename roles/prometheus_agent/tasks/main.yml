@@ -91,7 +91,9 @@
 
       # 로컬 저장을 하지 않으므로 보존 기간을 최소화 (메모리 절약)
       retention: 1h
-
+      kube-state-metrics:
+        metricLabelsAllowlist:
+          - nodes=[node-role]
   environment:
     http_proxy: "{{ proxy_url }}"
     https_proxy: "{{ proxy_url }}"
