@@ -17,7 +17,7 @@ services:
       - '--storage.tsdb.path=/prometheus'
       - '--storage.tsdb.retention.time={{ prometheus_retention_time }}'
       - '--storage.tsdb.retention.size={{ prometheus_retention_size }}'
-      - '--web.enable-remote-write-receiver'  # <--- 이 옵션이 핵심입니다!
+      - '--web.enable-remote-write-receiver' 
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
     deploy:

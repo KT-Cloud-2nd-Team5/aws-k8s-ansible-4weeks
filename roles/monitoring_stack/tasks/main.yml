@@ -71,7 +71,17 @@
   loop: "{{ dashboard_ids | default([]) }}"
   when: dashboard_ids is defined
 
-# 5. 통합 모니터링 스택 실행
+# 5. 커스텀 대시보드 배포
+- name: Deploy custom dashboard
+  become: true
+  copy:
+    src: files/custom-dashboard.json
+    dest: "{{ monitoring_dir }}/dashboards/Custom_Dashboard.json"
+    owner: "{{ target_user | default('ubuntu') }}"
+    group: "{{ target_user | default('ubuntu') }}"
+  notify: "reload monitoring"
+
+# 6. 통합 모니터링 스택 실행
 - name: 통합 모니터링 스택 실행
   become: true
   community.docker.docker_compose_v2:
