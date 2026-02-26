@@ -3,9 +3,8 @@ name: Ansible CI/CD (Bastion Runner) # GitHub Actions 탭에 표시될 워크플
 on:
   push:
     branches:
-      - "main"
+      - "iaminpwd"
       - "test-cicd"
-      - "hanseo"
     paths: # 아래 폴더나 파일이 변경되었을 때만 실행
       - "playbooks/**"
       - "roles/**"
