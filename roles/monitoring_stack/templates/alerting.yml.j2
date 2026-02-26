@@ -40,20 +40,18 @@ groups:
           - refId: C
             datasourceUid: __expr__
             model:
-              expression: A
+              type: classic_conditions
               refId: C
-              type: threshold
               conditions:
                 - evaluator: { params: [0], type: gt }
                   operator: { type: and }
-                  query: { params: [C] }
+                  query: { params: [A] } # 원본 데이터 A를 참조해야 함
                   reducer: { type: last }
                   type: query
         noDataState: NoData
         execErrState: OK
         for: 1m
         annotations:
-          # Jinja2 이스케이프 처리 완료
           description: '서버 {{ '{{' }} $labels.instance {{ '}}' }} (서비스: {{ '{{' }} $labels.job {{ '}}' }})가 1분 이상 응답하지 않습니다.'
           summary: '❌ 서버 다운 감지: {{ '{{' }} $labels.instance {{ '}}' }}'
         isPaused: false
@@ -74,13 +72,12 @@ groups:
           - refId: C
             datasourceUid: __expr__
             model:
-              expression: A
+              type: classic_conditions
               refId: C
-              type: threshold
               conditions:
                 - evaluator: { params: [80], type: gt }
                   operator: { type: and }
-                  query: { params: [C] }
+                  query: { params: [A] }
                   reducer: { type: last }
                   type: query
         for: 5m
@@ -105,9 +102,14 @@ groups:
           - refId: C
             datasourceUid: __expr__
             model:
-              expression: A
+              type: classic_conditions
               refId: C
-              type: threshold
+              conditions:
+                - evaluator: { params: [90], type: gt }
+                  operator: { type: and }
+                  query: { params: [A] }
+                  reducer: { type: last }
+                  type: query
         for: 5m
         annotations:
           description: '서버 {{ '{{' }} $labels.instance {{ '}}' }}의 메모리 사용률이 90%를 초과했습니다. (현재: {{ '{{' }} $values.A.Value | printf "%.2f" {{ '}}' }}%)'
@@ -130,9 +132,14 @@ groups:
           - refId: C
             datasourceUid: __expr__
             model:
-              expression: A
+              type: classic_conditions
               refId: C
-              type: threshold
+              conditions:
+                - evaluator: { params: [15], type: lt }
+                  operator: { type: and }
+                  query: { params: [A] }
+                  reducer: { type: last }
+                  type: query
         for: 5m
         annotations:
           description: '서버 {{ '{{' }} $labels.instance {{ '}}' }}의 루트(/) 파티션 여유 공간이 15% 미만입니다. (현재 여유량: {{ '{{' }} $values.A.Value | printf "%.2f" {{ '}}' }}%)'
@@ -155,9 +162,14 @@ groups:
           - refId: C
             datasourceUid: __expr__
             model:
-              expression: A
+              type: classic_conditions
               refId: C
-              type: threshold
+              conditions:
+                - evaluator: { params: [0], type: lt }
+                  operator: { type: and }
+                  query: { params: [A] }
+                  reducer: { type: last }
+                  type: query
         for: 10m
         annotations:
           description: '서버 {{ '{{' }} $labels.instance {{ '}}' }}의 현재 디스크 사용 추세로 볼 때, 24시간 이내에 공간이 가득 찰 것으로 예측됩니다.'
@@ -180,9 +192,14 @@ groups:
           - refId: C
             datasourceUid: __expr__
             model:
-              expression: A
+              type: classic_conditions
               refId: C
-              type: threshold
+              conditions:
+                - evaluator: { params: [2], type: gt }
+                  operator: { type: and }
+                  query: { params: [A] }
+                  reducer: { type: last }
+                  type: query
         for: 1m
         annotations:
           description: 'Nginx 파드 수가 늘어났습니다. 현재 복제본 수: {{ '{{' }} $values.A.Value {{ '}}' }}개.'
