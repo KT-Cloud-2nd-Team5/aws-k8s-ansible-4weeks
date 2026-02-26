@@ -22,156 +22,147 @@ policies:
 # 3. 알림 규칙 통합 정의
 groups:
   - orgId: 1
-    name: 'Infrastructure-Alerts'
-    folder: 'Managed-Alerts'
-    interval: '1m'
+    name: infrastructure
+    folder: alert
+    interval: 1m
     rules:
       # --- 1. 서버 다운 알림 ---
-      - uid: server_down_alert
-        title: 'Target Down Alert'
-        condition: B  # B(Classic Condition) 결과를 따릅니다.
+      - uid: dfed1dhwqv0u8c
+        title: server down
+        condition: C
         data:
           - refId: A
-            datasourceUid: "my-prometheus"
-            relativeTimeRange: { from: 300, to: 0 }
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: my-prometheus
             model:
-              expr: 'sum by (instance, job) (up == 0)'
+              # instance 라벨을 명시적으로 보존합니다.
+              expr: sum by (instance) (up)
               refId: A
           - refId: B
-            datasourceUid: "-100" # Grafana Expression 엔진
+            datasourceUid: __expr__
+            model: { expression: A, reducer: last, type: reduce, refId: B }
+          - refId: C
+            datasourceUid: __expr__
             model:
-              type: classic_conditions
-              datasource: { type: "__expr__", uid: "-100" }
-              refId: B
+              expression: B
+              type: threshold
+              refId: C
               conditions:
-                - evaluator: { params: [0], type: "gt" } # 0보다 크면 알림 발생
-                  operator: { type: "and" }
-                  query: { params: [A] }
-                  reducer: { type: "last" }
-                  type: "query"
-        for: '2m'
+                - evaluator: { params: [0.5], type: lt }
+                  operator: { type: and }
+                  query: { params: [B] }
+                  reducer: { type: last }
+                  type: query
+        noDataState: NoData
+        execErrState: OK
+        for: 1m
         annotations:
-          summary: "❌ 서버 다운 감지: {{ '{{' }} $labels.instance {{ '}}' }}"
-          description: "{{ '{{' }} $labels.instance {{ '}}' }} 서버가 2분 이상 응답하지 않습니다. (서비스: {{ '{{' }} $labels.job {{ '}}' }})"
-        labels:
-          severity: critical
+          description: '서버 {{ '{{' }} $labels.instance {{ '}}' }} 가 1분 이상 응답하지 않습니다.'
+          summary: '❌ 서버 다운 감지: {{ '{{' }} $labels.instance {{ '}}' }}'
+        notification_settings:
+          receiver: Discord-Alert
 
       # --- 2. CPU 고부하 알림 ---
-      - uid: cpu_high_usage
-        title: 'CPU Usage High'
-        condition: B
+      - uid: efed2c4iollhca
+        title: cpu 고부하
+        condition: C
         data:
           - refId: A
-            datasourceUid: "my-prometheus"
-            relativeTimeRange: { from: 300, to: 0 }
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: my-prometheus
             model:
-              expr: '100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)'
+              expr: 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
               refId: A
           - refId: B
-            datasourceUid: "-100"
+            datasourceUid: __expr__
+            model: { expression: A, reducer: last, type: reduce, refId: B }
+          - refId: C
+            datasourceUid: __expr__
             model:
-              type: classic_conditions
-              datasource: { type: "__expr__", uid: "-100" }
-              refId: B
+              expression: B
+              type: threshold
+              refId: C
               conditions:
-                - evaluator: { params: [80], type: "gt" } # 80% 초과 시
-                  operator: { type: "and" }
-                  query: { params: [A] }
-                  reducer: { type: "last" }
-                  type: "query"
-        for: '5m'
+                - evaluator: { params: [80], type: gt }
+                  operator: { type: and }
+                  query: { params: [B] }
+                  reducer: { type: last }
+                  type: query
+        for: 5m
         annotations:
-          summary: "🔥 CPU 부하 경고"
-          description: "{{ '{{' }} $labels.instance {{ '}}' }} CPU 사용량 80% 초과 (현재: {{ '{{' }} $values.A.Value | printf \"%.2f\" {{ '}}' }}%)"
-        labels:
-          severity: warning
+          description: '서버 {{ '{{' }} $labels.instance {{ '}}' }} CPU 사용량 80% 초과 (현재: {{ '{{' }} $values.B.Value | printf "%.2f" {{ '}}' }}%)'
+          summary: "🔥 CPU 부하 경고: {{ '{{' }} $labels.instance {{ '}}' }}"
+        notification_settings:
+          receiver: Discord-Alert
 
       # --- 3. 메모리 사용량 위험 ---
-      - uid: memory_high_usage
-        title: 'Memory Usage High'
-        condition: B
+      - uid: dfed2g53d16gwf
+        title: memory 사용량 위험
+        condition: C
         data:
           - refId: A
-            datasourceUid: "my-prometheus"
-            relativeTimeRange: { from: 300, to: 0 }
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: my-prometheus
             model:
-              expr: 'sum by (instance) ((node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100)'
+              expr: sum by (instance) ((node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100)
               refId: A
           - refId: B
-            datasourceUid: "-100"
-            model:
-              type: classic_conditions
-              datasource: { type: "__expr__", uid: "-100" }
-              refId: B
-              conditions:
-                - evaluator: { params: [90], type: "gt" } # 90% 초과 시
-                  operator: { type: "and" }
-                  query: { params: [A] }
-                  reducer: { type: "last" }
-                  type: "query"
-        for: '5m'
+            datasourceUid: __expr__
+            model: { expression: A, reducer: last, type: reduce, refId: B }
+          - refId: C
+            datasourceUid: __expr__
+            model: { expression: B, type: threshold, refId: C, conditions: [{ evaluator: { params: [90], type: gt }, operator: { type: and }, query: { params: [B] }, reducer: { type: last }, type: query }] }
+        for: 5m
         annotations:
-          summary: "⚠️ 메모리 부족 경고"
-          description: "{{ '{{' }} $labels.instance {{ '}}' }} 메모리 사용률 90% 초과 (현재: {{ '{{' }} $values.A.Value | printf \"%.2f\" {{ '}}' }}%)"
-        labels:
-          severity: critical
+          description: '서버 {{ '{{' }} $labels.instance {{ '}}' }} 메모리 사용률 90% 초과 (현재: {{ '{{' }} $values.B.Value | printf "%.2f" {{ '}}' }}%)'
+          summary: '⚠️ 메모리 부족 경고: {{ '{{' }} $labels.instance {{ '}}' }}'
+        notification_settings:
+          receiver: Discord-Alert
 
       # --- 4. 디스크 공간 부족 ---
-      - uid: disk_space_low
-        title: 'Disk Space Low'
-        condition: B
+      - uid: ffed2k5iwo9vkf
+        title: disk 공간 부족
+        condition: C
         data:
           - refId: A
-            datasourceUid: "my-prometheus"
-            relativeTimeRange: { from: 300, to: 0 }
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: my-prometheus
             model:
-              expr: 'sum by (instance) (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} * 100)'
+              expr: sum by (instance) (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} * 100)
               refId: A
           - refId: B
-            datasourceUid: "-100"
-            model:
-              type: classic_conditions
-              datasource: { type: "__expr__", uid: "-100" }
-              refId: B
-              conditions:
-                - evaluator: { params: [15], type: "lt" } # 15% 미만 시
-                  operator: { type: "and" }
-                  query: { params: [A] }
-                  reducer: { type: "last" }
-                  type: "query"
-        for: '5m'
+            datasourceUid: __expr__
+            model: { expression: A, reducer: last, type: reduce, refId: B }
+          - refId: C
+            datasourceUid: __expr__
+            model: { expression: B, type: threshold, refId: C, conditions: [{ evaluator: { params: [15], type: lt }, operator: { type: and }, query: { params: [B] }, reducer: { type: last }, type: query }] }
+        for: 5m
         annotations:
-          summary: "💾 디스크 공간 부족"
-          description: "{{ '{{' }} $labels.instance {{ '}}' }} 루트(/) 파티션 여유 공간이 15% 미만입니다. (현재 여유량: {{ '{{' }} $values.A.Value | printf \"%.2f\" {{ '}}' }}%)"
-        labels:
-          severity: warning
+          description: '서버 {{ '{{' }} $labels.instance {{ '}}' }} 루트(/) 파티션 여유 공간 15% 미만 (현재: {{ '{{' }} $values.B.Value | printf "%.2f" {{ '}}' }}%)'
+          summary: "💾 디스크 공간 부족: {{ '{{' }} $labels.instance {{ '}}' }}"
+        notification_settings:
+          receiver: Discord-Alert
 
       # --- 5. 디스크 고갈 예측 ---
-      - uid: disk_will_fill_in_24h
-        title: 'Disk Prediction Alert'
-        condition: B
+      - uid: cfed2o22ji41sd
+        title: disk 고갈 예측
+        condition: C
         data:
           - refId: A
-            datasourceUid: "my-prometheus"
             relativeTimeRange: { from: 3600, to: 0 }
+            datasourceUid: my-prometheus
             model:
-              expr: 'sum by (instance) (predict_linear(node_filesystem_free_bytes{mountpoint="/"}[1h], 24 * 3600))'
+              expr: sum by (instance) (predict_linear(node_filesystem_free_bytes{mountpoint="/"}[1h], 24 * 3600))
               refId: A
           - refId: B
-            datasourceUid: "-100"
-            model:
-              type: classic_conditions
-              datasource: { type: "__expr__", uid: "-100" }
-              refId: B
-              conditions:
-                - evaluator: { params: [0], type: "lt" } # 0보다 작아질 것으로 예측 시
-                  operator: { type: "and" }
-                  query: { params: [A] }
-                  reducer: { type: "last" }
-                  type: "query"
-        for: '10m'
+            datasourceUid: __expr__
+            model: { expression: A, reducer: last, type: reduce, refId: B }
+          - refId: C
+            datasourceUid: __expr__
+            model: { expression: B, type: threshold, refId: C, conditions: [{ evaluator: { params: [0], type: lt }, operator: { type: and }, query: { params: [B] }, reducer: { type: last }, type: query }] }
+        for: 10m
         annotations:
-          summary: "📈 디스크 고갈 위험 예측"
-          description: "{{ '{{' }} $labels.instance {{ '}}' }}의 현재 디스크 사용 추세로 볼 때, 24시간 이내에 공간이 가득 찰 것으로 예측됩니다."
-        labels:
-          severity: warning
+          description: '서버 {{ '{{' }} $labels.instance {{ '}}' }} 의 현재 디스크 사용 추세로 볼 때 24시간 이내 고갈 예측됩니다.'
+          summary: "📈 디스크 고갈 위험 예측: {{ '{{' }} $labels.instance {{ '}}' }}"
+        notification_settings:
+          receiver: Discord-Alert
