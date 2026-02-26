@@ -21,157 +21,320 @@ policies:
 
 # 3. 알림 규칙 통합 정의
 groups:
-  - orgId: 1
-    name: 'Infrastructure-Alerts'
-    folder: 'Managed-Alerts'
-    interval: '1m'
-    rules:
-      # --- 1. 서버 다운 알림 ---
-      - uid: server_down_alert
-        title: 'Target Down Alert'
-        condition: B  # B(Classic Condition) 결과를 따릅니다.
-        data:
-          - refId: A
-            datasourceUid: "my-prometheus"
-            relativeTimeRange: { from: 300, to: 0 }
-            model:
-              expr: 'sum by (instance, job) (up == 0)'
-              refId: A
-          - refId: B
-            datasourceUid: "-100" # Grafana Expression 엔진
-            model:
-              type: classic_conditions
-              datasource: { type: "__expr__", uid: "-100" }
-              refId: B
-              conditions:
-                - evaluator: { params: [0], type: "gt" } # 0보다 크면 알림 발생
-                  operator: { type: "and" }
-                  query: { params: [A] }
-                  reducer: { type: "last" }
-                  type: "query"
-        for: '2m'
-        annotations:
-          summary: "❌ 서버 다운 감지: {{ '{{' }} $labels.instance {{ '}}' }}"
-          description: "{{ '{{' }} $labels.instance {{ '}}' }} 서버가 2분 이상 응답하지 않습니다. (서비스: {{ '{{' }} $labels.job {{ '}}' }})"
-        labels:
-          severity: critical
-
-      # --- 2. CPU 고부하 알림 ---
-      - uid: cpu_high_usage
-        title: 'CPU Usage High'
-        condition: B
-        data:
-          - refId: A
-            datasourceUid: "my-prometheus"
-            relativeTimeRange: { from: 300, to: 0 }
-            model:
-              expr: '100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)'
-              refId: A
-          - refId: B
-            datasourceUid: "-100"
-            model:
-              type: classic_conditions
-              datasource: { type: "__expr__", uid: "-100" }
-              refId: B
-              conditions:
-                - evaluator: { params: [80], type: "gt" } # 80% 초과 시
-                  operator: { type: "and" }
-                  query: { params: [A] }
-                  reducer: { type: "last" }
-                  type: "query"
-        for: '5m'
-        annotations:
-          summary: "🔥 CPU 부하 경고"
-          description: "{{ '{{' }} $labels.instance {{ '}}' }} CPU 사용량 80% 초과 (현재: {{ '{{' }} $values.A.Value | printf \"%.2f\" {{ '}}' }}%)"
-        labels:
-          severity: warning
-
-      # --- 3. 메모리 사용량 위험 ---
-      - uid: memory_high_usage
-        title: 'Memory Usage High'
-        condition: B
-        data:
-          - refId: A
-            datasourceUid: "my-prometheus"
-            relativeTimeRange: { from: 300, to: 0 }
-            model:
-              expr: 'sum by (instance) ((node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100)'
-              refId: A
-          - refId: B
-            datasourceUid: "-100"
-            model:
-              type: classic_conditions
-              datasource: { type: "__expr__", uid: "-100" }
-              refId: B
-              conditions:
-                - evaluator: { params: [90], type: "gt" } # 90% 초과 시
-                  operator: { type: "and" }
-                  query: { params: [A] }
-                  reducer: { type: "last" }
-                  type: "query"
-        for: '5m'
-        annotations:
-          summary: "⚠️ 메모리 부족 경고"
-          description: "{{ '{{' }} $labels.instance {{ '}}' }} 메모리 사용률 90% 초과 (현재: {{ '{{' }} $values.A.Value | printf \"%.2f\" {{ '}}' }}%)"
-        labels:
-          severity: critical
-
-      # --- 4. 디스크 공간 부족 ---
-      - uid: disk_space_low
-        title: 'Disk Space Low'
-        condition: B
-        data:
-          - refId: A
-            datasourceUid: "my-prometheus"
-            relativeTimeRange: { from: 300, to: 0 }
-            model:
-              expr: 'sum by (instance) (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} * 100)'
-              refId: A
-          - refId: B
-            datasourceUid: "-100"
-            model:
-              type: classic_conditions
-              datasource: { type: "__expr__", uid: "-100" }
-              refId: B
-              conditions:
-                - evaluator: { params: [15], type: "lt" } # 15% 미만 시
-                  operator: { type: "and" }
-                  query: { params: [A] }
-                  reducer: { type: "last" }
-                  type: "query"
-        for: '5m'
-        annotations:
-          summary: "💾 디스크 공간 부족"
-          description: "{{ '{{' }} $labels.instance {{ '}}' }} 루트(/) 파티션 여유 공간이 15% 미만입니다. (현재 여유량: {{ '{{' }} $values.A.Value | printf \"%.2f\" {{ '}}' }}%)"
-        labels:
-          severity: warning
-
-      # --- 5. 디스크 고갈 예측 ---
-      - uid: disk_will_fill_in_24h
-        title: 'Disk Prediction Alert'
-        condition: B
-        data:
-          - refId: A
-            datasourceUid: "my-prometheus"
-            relativeTimeRange: { from: 3600, to: 0 }
-            model:
-              expr: 'sum by (instance) (predict_linear(node_filesystem_free_bytes{mountpoint="/"}[1h], 24 * 3600))'
-              refId: A
-          - refId: B
-            datasourceUid: "-100"
-            model:
-              type: classic_conditions
-              datasource: { type: "__expr__", uid: "-100" }
-              refId: B
-              conditions:
-                - evaluator: { params: [0], type: "lt" } # 0보다 작아질 것으로 예측 시
-                  operator: { type: "and" }
-                  query: { params: [A] }
-                  reducer: { type: "last" }
-                  type: "query"
-        for: '10m'
-        annotations:
-          summary: "📈 디스크 고갈 위험 예측"
-          description: "{{ '{{' }} $labels.instance {{ '}}' }}의 현재 디스크 사용 추세로 볼 때, 24시간 이내에 공간이 가득 찰 것으로 예측됩니다."
-        labels:
-          severity: warning
+    - orgId: 1
+      name: infrastructure
+      folder: alert
+      interval: 1m
+      rules:
+        - uid: dfed1dhwqv0u8c
+          title: server down
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: my-prometheus
+              model:
+                editorMode: code
+                expr: up == 0
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: OK
+          for: 1m
+          annotations:
+            description: '서버 {{ $labels.instance }} (서비스: {{ $labels.job }})가 1분 이상 응답하지 않습니다.'
+            summary: '❌ 서버 다운 감지: {{ $labels.instance }}'
+          isPaused: false
+          notification_settings:
+            receiver: Discord-Alert
+        - uid: efed2c4iollhca
+          title: cpu 고부하
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: my-prometheus
+              model:
+                editorMode: code
+                expr: 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 80
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: OK
+          for: 5m
+          annotations:
+            description: '{{ $labels.instance }} 서버의 CPU 사용량이 80%를 초과했습니다. (현재: {{ $values.A.Value | printf "%.2f" }}%)'
+            summary: "\U0001F525 CPU 부하 경고: {{ $labels.instance }}"
+          isPaused: false
+          notification_settings:
+            receiver: Discord-Alert
+        - uid: dfed2g53d16gwf
+          title: memory 사용량 위험
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: my-prometheus
+              model:
+                editorMode: code
+                expr: sum by (instance) ((node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100)
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 90
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: OK
+          for: 5m
+          annotations:
+            description: '서버 {{ $labels.instance }}의 메모리 사용률이 90%를 초과했습니다. (현재: {{ $values.A.Value | printf "%.2f" }}%)'
+            summary: '⚠️ 메모리 부족 경고: {{ $labels.instance }}'
+          isPaused: false
+          notification_settings:
+            receiver: Discord-Alert
+        - uid: ffed2k5iwo9vkf
+          title: disk 공간 부족
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: my-prometheus
+              model:
+                editorMode: code
+                expr: sum by (instance) (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} * 100)
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 15
+                        type: lt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: OK
+          for: 5m
+          annotations:
+            description: '서버 {{ $labels.instance }}의 루트(/) 파티션 여유 공간이 15% 미만입니다. (현재 여유량: {{ $values.A.Value | printf "%.2f" }}%)'
+            summary: "\U0001F4BE 디스크 공간 부족: {{ $labels.instance }}"
+          isPaused: false
+          notification_settings:
+            receiver: Discord-Alert
+        - uid: cfed2o22ji41sd
+          title: disk 고갈 예측
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: my-prometheus
+              model:
+                editorMode: code
+                expr: sum by (instance) (predict_linear(node_filesystem_free_bytes{mountpoint="/"}[1h], 24 * 3600))
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: lt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: OK
+          for: 10m
+          annotations:
+            description: 서버 {{ $labels.instance }}의 현재 디스크 사용 추세로 볼 때, 24시간 이내에 공간이 가득 찰 것으로 예측됩니다. 미리 파일을 정리하거나 용량을 증설하세요.
+            summary: "\U0001F4C8 디스크 고갈 위험 예측: {{ $labels.instance }}"
+          isPaused: false
+          notification_settings:
+            receiver: Discord-Alert
+        - uid: dfed4cmzlv5s0c
+          title: 'nginx hpa '
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: my-prometheus
+              model:
+                editorMode: code
+                expr: kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler="web-nginx-hpa"}
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 2
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: OK
+          for: 1m
+          annotations:
+            description: 'Nginx 파드 수가 늘어났습니다. 현재 복제본 수: {{ $values.A.Value }}개. 트래픽 유입량을 확인하세요.'
+            summary: "\U0001F680 Nginx 스케일 아웃 감지 (HPA 작동)"
+          isPaused: false
+          notification_settings:
+            receiver: Discord-Alert

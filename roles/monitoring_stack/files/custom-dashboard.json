@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 6,
+  "id": 10,
   "links": [],
   "panels": [
     {
@@ -275,7 +275,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "ip-10-0-1-144"
+              "options": "ip-10-0-3-206"
             },
             "properties": [
               {
@@ -618,7 +618,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "10.0.1.144:9100"
+              "options": "10.0.3.206:9100"
             },
             "properties": [
               {
@@ -774,7 +774,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "10.0.1.144:9100"
+              "options": "10.0.3.206:9100"
             },
             "properties": [
               {
@@ -896,7 +896,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "10.0.1.144:9100"
+              "options": "10.0.3.206:9100"
             },
             "properties": [
               {
@@ -1337,7 +1337,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "10.0.1.144:9100 수신"
+              "options": "10.0.3.206:9100 수신"
             },
             "properties": [
               {
@@ -1497,7 +1497,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "10.0.1.144:9100 송신"
+              "options": "10.0.3.206:9100 송신"
             },
             "properties": [
               {
@@ -2015,12 +2015,12 @@
     "list": []
   },
   "time": {
-    "from": "now-15m",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "custom dashboard",
-  "uid": "adqc9n7",
-  "version": 29
+  "title": "custom dashboard Copy",
+  "uid": "adsnxtl",
+  "version": 2
 }
