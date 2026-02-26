@@ -1,6 +1,15 @@
 ---
-# 1. 기존 데이터 완전 정리
-- name: 기존 설정 폴더 및 파일 초기화
+# 1. 기존 Docker 스택 및 내부 볼륨 완전 제거 (핵심!)
+- name: 기존 모니터링 스택 및 Docker 내부 볼륨 완전 삭제
+  become: true
+  community.docker.docker_compose_v2:
+    project_src: "{{ monitoring_dir }}"
+    state: absent
+    remove_orphans: true
+    volumes: true # Docker 내부 저장소(Named Volumes)를 지우는 옵션입니다.
+
+# 2. 호스트의 물리적 디렉토리 및 파일 정리
+- name: 기존 설정 폴더 및 물리적 데이터 초기화
   become: true
   file:
     path: "{{ item }}"
@@ -10,10 +19,9 @@
     - "{{ monitoring_dir }}/dashboards"
     - "{{ monitoring_dir }}/data"
     - "{{ monitoring_dir }}/grafana-data"
-    - "{{ monitoring_dir }}/grafana-data/grafana.db"
     - "{{ monitoring_dir }}/prometheus.yml"
 
-# 2. 필요한 모든 디렉토리 생성
+# 3. 필요한 모든 디렉토리 구조 재생성
 - name: 모니터링 디렉토리 구조 생성
   become: true
   file:
@@ -30,7 +38,7 @@
     - "{{ monitoring_dir }}/dashboards"
     - "{{ monitoring_dir }}/grafana-data"
 
-# 3. 설정 파일 배포
+# 4. 설정 파일 배포
 - name: 모니터링 설정 파일 배포
   become: true
   template:
@@ -52,9 +60,8 @@
         dest: "provisioning/dashboards/provider.yml",
       }
     - { src: "alerting.yml.j2", dest: "provisioning/alerting/alerting.yml" }
-  notify: "reload monitoring"
 
-# 4. Grafana Labs 공식 대시보드 다운로드
+# 5. Grafana Labs 공식 대시보드 다운로드
 - name: Grafana Labs에서 공식 대시보드 다운로드
   become: true
   get_url:
@@ -74,7 +81,7 @@
   loop: "{{ dashboard_ids | default([]) }}"
   when: dashboard_ids is defined
 
-# 5. 커스텀 대시보드 배포
+# 6. 커스텀 대시보드 배포
 - name: Deploy custom dashboard
   become: true
   copy:
@@ -82,17 +89,9 @@
     dest: "{{ monitoring_dir }}/dashboards/Custom_Dashboard.json"
     owner: "{{ target_user | default('ubuntu') }}"
     group: "{{ target_user | default('ubuntu') }}"
-  notify: "reload monitoring"
 
-# 6. Docker Compose 재생성
-- name: 기존 모니터링 스택 완전 중지
-  become: true
-  community.docker.docker_compose_v2:
-    project_src: "{{ monitoring_dir }}"
-    state: absent
-    remove_orphans: true
-
-- name: 통합 모니터링 스택 완전 재생성
+# 7. 통합 모니터링 스택 실행
+- name: 통합 모니터링 스택 완전 재생성 및 시작
   become: true
   community.docker.docker_compose_v2:
     project_src: "{{ monitoring_dir }}"
@@ -101,7 +100,7 @@
     recreate: always
     pull: always
 
-# 7. Grafana 안정화 대기
+# 8. Grafana 안정화 대기
 - name: Grafana 서비스 안정화 대기 (30초)
   pause:
     seconds: 30
