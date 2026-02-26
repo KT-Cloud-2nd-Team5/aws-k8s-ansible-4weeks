@@ -4,7 +4,7 @@ target_user: "ubuntu"
 monitoring_dir: "/home/{{ target_user }}/monitoring"
 
 # 그라파나(Grafana)
-grafana_admin_password: "admin" # 실제 사용할 비번
+grafana_admin_password: "1234" # 실제 사용할 비번
 grafana_port: 3000
 
 # 프로메테우스(Prometheus)
