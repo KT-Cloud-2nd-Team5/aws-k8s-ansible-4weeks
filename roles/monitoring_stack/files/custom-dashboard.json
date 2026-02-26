@@ -18,7 +18,6 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 6,
   "links": [],
   "panels": [
     {
@@ -88,7 +87,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "10.0.1.144"
+              "options": "10.0.3.206"
             },
             "properties": [
               {
@@ -138,7 +137,7 @@
         "textMode": "value_and_name",
         "wideLayout": true
       },
-      "pluginVersion": "12.3.3",
+      "pluginVersion": "12.4.0",
       "targets": [
         {
           "datasource": {
@@ -223,7 +222,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.3.3",
+      "pluginVersion": "12.4.0",
       "targets": [
         {
           "editorMode": "code",
@@ -275,7 +274,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "ip-10-0-1-144"
+              "options": "ip-10-0-3-206"
             },
             "properties": [
               {
@@ -314,7 +313,7 @@
         "textMode": "value_and_name",
         "wideLayout": true
       },
-      "pluginVersion": "12.3.3",
+      "pluginVersion": "12.4.0",
       "targets": [
         {
           "editorMode": "code",
@@ -385,7 +384,7 @@
         "sizing": "auto",
         "valueMode": "color"
       },
-      "pluginVersion": "12.3.3",
+      "pluginVersion": "12.4.0",
       "targets": [
         {
           "editorMode": "code",
@@ -479,7 +478,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.3.3",
+      "pluginVersion": "12.4.0",
       "targets": [
         {
           "editorMode": "code",
@@ -542,7 +541,7 @@
         "showThresholdMarkers": true,
         "sizing": "auto"
       },
-      "pluginVersion": "12.3.3",
+      "pluginVersion": "12.4.0",
       "targets": [
         {
           "editorMode": "code",
@@ -618,7 +617,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "10.0.1.144:9100"
+              "options": "10.0.3.206:9100"
             },
             "properties": [
               {
@@ -697,7 +696,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.3.3",
+      "pluginVersion": "12.4.0",
       "targets": [
         {
           "editorMode": "code",
@@ -774,7 +773,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "10.0.1.144:9100"
+              "options": "10.0.3.206:9100"
             },
             "properties": [
               {
@@ -853,7 +852,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.3.3",
+      "pluginVersion": "12.4.0",
       "targets": [
         {
           "editorMode": "code",
@@ -896,7 +895,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "10.0.1.144:9100"
+              "options": "10.0.3.206:9100"
             },
             "properties": [
               {
@@ -986,7 +985,7 @@
         "sizing": "auto",
         "valueMode": "color"
       },
-      "pluginVersion": "12.3.3",
+      "pluginVersion": "12.4.0",
       "targets": [
         {
           "editorMode": "code",
@@ -1057,7 +1056,7 @@
         "showThresholdMarkers": false,
         "sizing": "auto"
       },
-      "pluginVersion": "12.3.3",
+      "pluginVersion": "12.4.0",
       "targets": [
         {
           "editorMode": "code",
@@ -1152,7 +1151,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.3.3",
+      "pluginVersion": "12.4.0",
       "targets": [
         {
           "editorMode": "code",
@@ -1260,7 +1259,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.3.3",
+      "pluginVersion": "12.4.0",
       "targets": [
         {
           "editorMode": "code",
@@ -1337,7 +1336,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "10.0.1.144:9100 수신"
+              "options": "10.0.3.206:9100 수신"
             },
             "properties": [
               {
@@ -1416,7 +1415,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.3.3",
+      "pluginVersion": "12.4.0",
       "targets": [
         {
           "editorMode": "code",
@@ -1497,7 +1496,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "10.0.1.144:9100 송신"
+              "options": "10.0.3.206:9100 송신"
             },
             "properties": [
               {
@@ -1576,7 +1575,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.3.3",
+      "pluginVersion": "12.4.0",
       "targets": [
         {
           "editorMode": "code",
@@ -1683,7 +1682,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.3.3",
+      "pluginVersion": "12.4.0",
       "targets": [
         {
           "editorMode": "code",
@@ -1790,7 +1789,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.3.3",
+      "pluginVersion": "12.4.0",
       "targets": [
         {
           "editorMode": "code",
@@ -1897,7 +1896,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.3.3",
+      "pluginVersion": "12.4.0",
       "targets": [
         {
           "editorMode": "code",
@@ -1994,7 +1993,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.3.3",
+      "pluginVersion": "12.4.0",
       "targets": [
         {
           "editorMode": "code",
@@ -2020,7 +2019,8 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "custom dashboard",
-  "uid": "adqc9n7",
-  "version": 29
+  "title": "Custom Dashboard",
+  "uid": "ad7r9wd",
+  "version": 2,
+  "weekStart": ""
 }
