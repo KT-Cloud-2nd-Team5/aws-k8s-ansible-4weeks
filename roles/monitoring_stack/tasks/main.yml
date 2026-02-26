@@ -1,7 +1,4 @@
 ---
-# 통합 모니터링 스택 배포 (완전 재생성 지원)
-# Grafana Provisioned 규칙 중복 해결 버전
-
 # 1. 기존 데이터 완전 정리 (DB 캐시까지!)
 - name: 기존 설정 폴더 및 파일 초기화
   become: true
@@ -12,8 +9,8 @@
     - "{{ monitoring_dir }}/provisioning"
     - "{{ monitoring_dir }}/dashboards"
     - "{{ monitoring_dir }}/data"
-    - "{{ monitoring_dir }}/grafana-data" # ✅ Grafana 볼륨 추가!
-    - "{{ monitoring_dir }}/grafana-data/grafana.db" # ✅ SQLite DB 직접 삭제!
+    - "{{ monitoring_dir }}/grafana-data"
+    - "{{ monitoring_dir }}/grafana-data/grafana.db"
     - "{{ monitoring_dir }}/prometheus.yml"
 
 # 2. 필요한 모든 디렉토리 생성
@@ -31,9 +28,9 @@
     - "{{ monitoring_dir }}/provisioning/dashboards"
     - "{{ monitoring_dir }}/provisioning/alerting"
     - "{{ monitoring_dir }}/dashboards"
-    - "{{ monitoring_dir }}/grafana-data" # ✅ 볼륨 디렉토리 생성
+    - "{{ monitoring_dir }}/grafana-data"
 
-# 3. 설정 파일 배포
+# 3. 설정 파일 배포 (전체!)
 - name: 모니터링 설정 파일 배포
   become: true
   template:
@@ -94,7 +91,6 @@
     project_src: "{{ monitoring_dir }}"
     state: absent
     remove_orphans: true
-  notify: "restart monitoring"
 
 - name: 통합 모니터링 스택 완전 재생성
   become: true
@@ -102,17 +98,10 @@
     project_src: "{{ monitoring_dir }}"
     state: present
     remove_orphans: true
-    recreate: always # ✅ 강제 재생성!
-    pull: always # ✅ 최신 이미지
+    recreate: always
+    pull: always
 
-# 7. Grafana provisioning 재로드 대기
-- name: Grafana 완전 준비될 때까지 대기
-  become: true
-  community.docker.docker_compose_v2:
-    project_src: "{{ monitoring_dir }}"
-    state: present
-  register: compose_result
-
+# 7. Grafana 안정화 대기 (handlers 밖으로!)
 - name: Grafana 서비스 안정화 대기 (30초)
   pause:
     seconds: 30
