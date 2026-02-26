@@ -23,3 +23,10 @@ alert_webhook_url: "https://discord.com/api/webhooks/1468844118750007492/vKKoldU
 
 # 외부 노출 포트 (NodePort)
 mysql_exporter_node_port: 30104
+
+server_aliases:
+  "10.0.2.235:9100": "Master Node"
+  "10.0.1.90:9100": "Web Node-01"
+  "10.0.1.206:9100": "Web Node-02"
+  "10.0.2.222:9100": "DB Node"
+  "host.docker.internal:9100": "Bastion Host"
