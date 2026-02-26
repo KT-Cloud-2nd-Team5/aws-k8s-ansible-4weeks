@@ -1,12 +1,12 @@
 ---
-# 1. 기존 Docker 스택 및 내부 볼륨 완전 제거 (핵심!)
+# 1. 기존 Docker 스택 및 내부 볼륨 완전 제거
 - name: 기존 모니터링 스택 및 Docker 내부 볼륨 완전 삭제
   become: true
   community.docker.docker_compose_v2:
     project_src: "{{ monitoring_dir }}"
     state: absent
     remove_orphans: true
-    volumes: true # Docker 내부 저장소(Named Volumes)를 지우는 옵션입니다.
+    remove_volumes: true
 
 # 2. 호스트의 물리적 디렉토리 및 파일 정리
 - name: 기존 설정 폴더 및 물리적 데이터 초기화
