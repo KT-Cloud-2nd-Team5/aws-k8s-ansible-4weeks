@@ -6,6 +6,7 @@ on:
       - "main"
       - "test-cicd"
       - "hanseo"
+      - "iaminpwd"
     paths: # 아래 폴더나 파일이 변경되었을 때만 실행
       - "playbooks/**"
       - "roles/**"

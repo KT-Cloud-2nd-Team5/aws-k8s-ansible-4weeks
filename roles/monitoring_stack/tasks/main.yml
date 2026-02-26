@@ -1,5 +1,5 @@
 ---
-# 1. 기존 데이터 정리 (충돌 방지)
+# 1. 기존 데이터 완전 정리
 - name: 기존 설정 폴더 및 파일 초기화
   become: true
   file:
@@ -9,9 +9,11 @@
     - "{{ monitoring_dir }}/provisioning"
     - "{{ monitoring_dir }}/dashboards"
     - "{{ monitoring_dir }}/data"
+    - "{{ monitoring_dir }}/grafana-data"
+    - "{{ monitoring_dir }}/grafana-data/grafana.db"
     - "{{ monitoring_dir }}/prometheus.yml"
 
-# 2. 필요한 모든 '디렉토리' 생성
+# 2. 필요한 모든 디렉토리 생성
 - name: 모니터링 디렉토리 구조 생성
   become: true
   file:
@@ -26,6 +28,7 @@
     - "{{ monitoring_dir }}/provisioning/dashboards"
     - "{{ monitoring_dir }}/provisioning/alerting"
     - "{{ monitoring_dir }}/dashboards"
+    - "{{ monitoring_dir }}/grafana-data"
 
 # 3. 설정 파일 배포
 - name: 모니터링 설정 파일 배포
@@ -51,7 +54,7 @@
     - { src: "alerting.yml.j2", dest: "provisioning/alerting/alerting.yml" }
   notify: "reload monitoring"
 
-# 4. Grafana Labs에서 공식 대시보드 다운로드
+# 4. Grafana Labs 공식 대시보드 다운로드
 - name: Grafana Labs에서 공식 대시보드 다운로드
   become: true
   get_url:
@@ -62,7 +65,7 @@
   loop: "{{ dashboard_ids | default([]) }}"
   when: dashboard_ids is defined
 
-- name: 대시보드 JSON 내의 누락된 변수(DS_PROMETHEUS)를 실제 이름으로 치환
+- name: 대시보드 JSON 내 DS_PROMETHEUS 치환
   become: true
   replace:
     path: "{{ monitoring_dir }}/dashboards/dashboard-{{ item.id }}.json"
@@ -81,10 +84,24 @@
     group: "{{ target_user | default('ubuntu') }}"
   notify: "reload monitoring"
 
-# 6. 통합 모니터링 스택 실행
-- name: 통합 모니터링 스택 실행
+# 6. Docker Compose 재생성
+- name: 기존 모니터링 스택 완전 중지
+  become: true
+  community.docker.docker_compose_v2:
+    project_src: "{{ monitoring_dir }}"
+    state: absent
+    remove_orphans: true
+
+- name: 통합 모니터링 스택 완전 재생성
   become: true
   community.docker.docker_compose_v2:
     project_src: "{{ monitoring_dir }}"
     state: present
     remove_orphans: true
+    recreate: always
+    pull: always
+
+# 7. Grafana 안정화 대기
+- name: Grafana 서비스 안정화 대기 (30초)
+  pause:
+    seconds: 30
