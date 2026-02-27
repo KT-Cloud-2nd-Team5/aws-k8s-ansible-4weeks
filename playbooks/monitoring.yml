@@ -22,7 +22,8 @@
 
 # 3. 타겟 서버들 공통 설정
 - name: 쿠버네티스 에이전트 배포
-  hosts: master
+  hosts: master, web, db
+  gather_facts: true
   become: true
   roles:
     - role: prometheus_agent

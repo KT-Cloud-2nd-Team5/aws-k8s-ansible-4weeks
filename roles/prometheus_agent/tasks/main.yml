@@ -55,7 +55,20 @@
     http_proxy: "{{ proxy_url }}"
     https_proxy: "{{ proxy_url }}"
 
-# 7. 에이전트 배포
+# 7 쿠버네티스 노드에 별칭(Alias) 라벨 부여
+- name: K3s 노드에 관리용 별칭 라벨 추가 (Shell 사용)
+  become: true
+  shell: |
+    # kubectl 명령어로 직접 라벨링 (이미 있으면 덮어쓰기)
+    kubectl label node {{ ansible_hostname }} alias={{ inventory_hostname }} --overwrite
+  delegate_to: "{{ groups['master'][0] }}"
+  environment:
+    # 마스터 노드 내부 통신이므로 프록시를 완전히 무력화
+    http_proxy: ""
+    https_proxy: ""
+    no_proxy: "*"
+
+# 8. 에이전트 배포
 - name: Prometheus Agent 배포
   become: true
   kubernetes.core.helm:
@@ -63,30 +76,69 @@
     chart_ref: prometheus-community/prometheus
     release_namespace: "{{ my_ns | default('monitoring') }}"
     create_namespace: true
+    # [중요] 마스터 노드에 있는 k3s.yaml을 참조합니다.
     kubeconfig: /etc/rancher/k3s/k3s.yaml
     wait: true
     values:
       deploymentMode: agent
 
+      # 1. 전역 라벨 설정 (에이전트 자체 식별용)
+      global:
+        external_labels:
+          agent_host: "{{ inventory_hostname }}"
+
       server:
         enabled: true
         persistentVolume:
           enabled: false
+
+        # [핵심] 리모트 라이트 시 노드 라벨(alias)을 nodename으로 변환
         remoteWrite:
           - url: "http://{{ proxy_server_ip }}:9090/api/v1/write"
+            write_relabel_configs:
+              # 단계 1: 노드에 붙인 'alias' 라벨이 있으면 'nodename' 라벨로 교체
+              - source_labels: [__meta_kubernetes_node_label_alias]
+                target_label: nodename
+                action: replace
+                regex: "(.+)"
+
+              # 단계 2: 'alias'가 없는 경우를 대비해 기존 'node'명(ip-10-...)을 nodename으로 백업
+              - source_labels: [nodename]
+                regex: "^$"
+                replacement: "none"
+              - source_labels: [nodename, node]
+                regex: "none;(.+)"
+                target_label: nodename
+                replacement: "$1"
+                action: replace
+
+              # 단계 3: 노드 역할(web/db) 라벨 주입
+              - source_labels: [__meta_kubernetes_node_label_node_role]
+                target_label: role
+                action: replace
+
         extraArgs:
           enable-feature: agent
 
+      # 에이전트 모드이므로 불필요한 기능은 끕니다.
       alertmanager:
         enabled: false
       pushgateway:
         enabled: false
 
       retention: 1h
+
+      # [핵심] 노드 라벨을 메트릭으로 노출시켜 에이전트가 읽을 수 있게 함
       kube-state-metrics:
         metricLabelsAllowlist:
-          - nodes=[node-role]
+          - nodes=[alias,node-role]
+
+  # [에러 해결 포인트] 모든 노드가 아닌 마스터 서버 한 곳에서 딱 한 번만 실행합니다.
+  delegate_to: "{{ groups['master'][0] }}"
+  run_once: true
 
   environment:
     http_proxy: "{{ proxy_url }}"
     https_proxy: "{{ proxy_url }}"
+    # 마스터 내부 통신 시 프록시 예외 처리
+    no_proxy: "localhost,127.0.0.1,{{ groups['master'][0] }}"
