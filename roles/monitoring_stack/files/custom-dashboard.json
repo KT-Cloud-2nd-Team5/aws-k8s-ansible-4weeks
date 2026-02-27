@@ -96,8 +96,8 @@
             "uid": "my-prometheus"
           },
           "editorMode": "code",
-          "expr": "max(\r\n    label_replace(\r\n      label_replace(\r\n        kube_node_status_condition{condition=\"Ready\", status=\"true\"} \r\n        * on(node) group_left(label_node_role) \r\n        kube_node_labels,\r\n        \r\n        # [핵심] node 라벨(ip-10-0-x-90)에서 마지막 숫자(90)를 추출해 web-90 등으로 생성\r\n        \"display_name\", \"web-$1\", \"node\", \"ip-[0-9]+-[0-9]+-[0-9]+-([0-9]+)\"\r\n      ),\r\n      # label_node_role이 master나 db인 경우 해당 이름을 그대로 사용 (web-번호 덮어쓰기)\r\n      \"display_name\", \"$1\", \"label_node_role\", \"(master|db)\"\r\n    )\r\n  ) by (display_name)",
-          "legendFormat": "{{display_name}}",
+          "expr": "max(\r\n  label_replace(\r\n    kube_node_status_condition{condition=\"Ready\", status=\"true\"} \r\n    * on(node) group_left(label_alias, label_node_role) \r\n    kube_node_labels,\r\n    \r\n    # [수정] 정규표현식 대신, 우리가 붙인 label_alias를 display_name으로 바로 복사합니다.\r\n    \"display_name\", \"$1\", \"label_alias\", \"(.+)\"\r\n  )\r\n) by (display_name)",
+          "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
@@ -246,8 +246,8 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "count by (display_name) (\r\n  label_replace(\r\n    kube_pod_info{pod=~\"web-nginx.*\"} \r\n    * on(node) group_left(label_node_role) \r\n    kube_node_labels,\r\n    \r\n    # [핵심] node 라벨(ip-10-0-x-90)에서 마지막 숫자(90)를 추출해 web-90 등으로 생성\r\n    \"display_name\", \"web-$1\", \"node\", \"ip-[0-9]+-[0-9]+-[0-9]+-([0-9]+)\"\r\n  )\r\n)",
-          "legendFormat": "{{display_name}}",
+          "expr": "count by (display_name) (\r\n  label_replace(\r\n    kube_pod_info{pod=~\"web-nginx.*\"} \r\n    * on(node) group_left(label_alias) \r\n    kube_node_labels,\r\n    \r\n    # [수정] 노드 라벨(ip-10-0-...) 대신 우리가 박은 alias(k3s-web-01)를 그대로 사용\r\n    \"display_name\", \"$1\", \"label_alias\", \"(.+)\"\r\n  )\r\n)",
+          "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
@@ -568,7 +568,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "(\r\n  # 1. 쿠버네티스 노드들 처리 (web-숫자, master, db 자동 구분)\r\n  100 - (\r\n    avg by (display_name) (\r\n      label_replace(\r\n        label_replace(\r\n          rate(node_cpu_seconds_total{mode=\"idle\"}[5m])\r\n          * on(instance) group_left(label_node_role, node)\r\n          # 조인을 위해 instance 라벨 형식 맞추기\r\n          label_replace(label_replace(kube_node_labels, \"instance\", \"$1.$2.$3.$4:9100\", \"node\", \"ip-([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)\"), \"instance\", \"$1:9100\", \"node\", \"^(([0-9]+\\\\.){3}[0-9]+)$\"),\r\n          \r\n          # [핵심] node 라벨(ip-10-0-x-90)에서 마지막 숫자(90)를 추출해 web-90 등으로 생성\r\n          \"display_name\", \"web-$1\", \"node\", \"ip-[0-9]+-[0-9]+-[0-9]+-([0-9]+)\"\r\n        ),\r\n        # label_node_role이 master나 db인 경우 해당 이름을 그대로 사용 (web-번호 덮어쓰기)\r\n        \"display_name\", \"$1\", \"label_node_role\", \"(master|db)\"\r\n      )\r\n    ) * 100\r\n  )\r\n)\r\nOR\r\n(\r\n  # 2. 모니터링 서버 처리 (외부 노드)\r\n  100 - (\r\n    avg by (display_name) (\r\n      label_replace(\r\n        rate(node_cpu_seconds_total{mode=\"idle\", instance=~\"host.docker.internal.*\"}[5m]),\r\n        \"display_name\", \"monitoring\", \"instance\", \"(.*)\"\r\n      )\r\n    ) * 100\r\n  )\r\n)",
+          "expr": "(\r\n  # 1. 쿠버네티스 노드들 처리\r\n  100 - (\r\n    avg by (display_name) (\r\n      label_replace(\r\n        # node_exporter 메트릭과 노드 라벨 메트릭을 조인\r\n        rate(node_cpu_seconds_total{mode=\"idle\"}[5m])\r\n        # [핵심] 조인을 위해 instance(IP:Port)를 node(호스트네임)로 변환하는 대신, \r\n        # 메트릭 자체에 들어있는 'nodename'이나 다른 힌트를 활용하거나 \r\n        # 기존처럼 정규표현식으로 형식을 강제로 맞춥니다.\r\n        * on(instance) group_left(label_alias)\r\n        label_replace(\r\n          label_replace(kube_node_labels, \"instance\", \"$1.$2.$3.$4:9100\", \"node\", \"ip-([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)\"),\r\n          \"instance\", \"$1:9100\", \"node\", \"^(([0-9]+\\\\.){3}[0-9]+)$\"\r\n        ),\r\n        \r\n        # [수정] 성공적으로 조인된 label_alias를 이름으로 사용\r\n        \"display_name\", \"$1\", \"label_alias\", \"(.+)\"\r\n      )\r\n    ) * 100\r\n  )\r\n)\r\nOR\r\n(\r\n  # 2. 모니터링 서버 처리 (이 부분은 잘 나오고 계신 부분)\r\n  100 - (\r\n    avg by (display_name) (\r\n      label_replace(\r\n        rate(node_cpu_seconds_total{mode=\"idle\", instance=~\"host.docker.internal.*\"}[5m]),\r\n        \"display_name\", \"monitoring\", \"instance\", \"(.*)\"\r\n      )\r\n    ) * 100\r\n  )\r\n)",
           "legendFormat": "{{display_name}}",
           "range": true,
           "refId": "A"
@@ -663,7 +663,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "(\r\n  # 1. 쿠버네티스 노드들 처리 (web-숫자, master, db 자동 구분)\r\n  100 * (\r\n    1 - (\r\n      avg by (display_name) (\r\n        label_replace(\r\n          label_replace(\r\n            (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)\r\n            * on(instance) group_left(label_node_role, node)\r\n            # 조인을 위해 instance 라벨 형식 맞추기\r\n            label_replace(label_replace(kube_node_labels, \"instance\", \"$1.$2.$3.$4:9100\", \"node\", \"ip-([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)\"), \"instance\", \"$1:9100\", \"node\", \"^(([0-9]+\\\\.){3}[0-9]+)$\"),\r\n            \r\n            # [핵심] node 라벨(ip-10-0-x-90)에서 마지막 숫자(90)를 추출해 web-90 등으로 생성\r\n            \"display_name\", \"web-$1\", \"node\", \"ip-[0-9]+-[0-9]+-[0-9]+-([0-9]+)\"\r\n          ),\r\n          # label_node_role이 master나 db인 경우 해당 이름을 그대로 사용\r\n          \"display_name\", \"$1\", \"label_node_role\", \"(master|db)\"\r\n        )\r\n      )\r\n    )\r\n  )\r\n)\r\nOR\r\n(\r\n  # 2. 모니터링 서버 처리 (외부 노드)\r\n  100 * (\r\n    1 - (\r\n      avg by (display_name) (\r\n        label_replace(\r\n          (node_memory_MemAvailable_bytes{instance=~\"host.docker.internal.*\"} / node_memory_MemTotal_bytes{instance=~\"host.docker.internal.*\"}),\r\n          \"display_name\", \"monitoring\", \"instance\", \"(.*)\"\r\n        )\r\n      )\r\n    )\r\n  )\r\n)",
+          "expr": "(\r\n  # 1. 쿠버네티스 노드들 처리 (라벨링 적용)\r\n  100 * (\r\n    1 - (\r\n      avg by (display_name) (\r\n        label_replace(\r\n          (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)\r\n          # [핵심] 조인을 위해 instance 라벨 형식을 맞추는 복잡한 로직은 유지\r\n          * on(instance) group_left(label_alias) \r\n          label_replace(\r\n            label_replace(kube_node_labels, \"instance\", \"$1.$2.$3.$4:9100\", \"node\", \"ip-([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)\"),\r\n            \"instance\", \"$1:9100\", \"node\", \"^(([0-9]+\\\\.){3}[0-9]+)$\"\r\n          ),\r\n          \r\n          # [수정] 조인된 label_alias를 display_name으로 바로 사용\r\n          \"display_name\", \"$1\", \"label_alias\", \"(.+)\"\r\n        )\r\n      )\r\n    )\r\n  )\r\n)\r\nOR\r\n(\r\n  # 2. 모니터링 서버 처리 (외부 노드)\r\n  100 * (\r\n    1 - (\r\n      avg by (display_name) (\r\n        label_replace(\r\n          (node_memory_MemAvailable_bytes{instance=~\"host.docker.internal.*\"} / node_memory_MemTotal_bytes{instance=~\"host.docker.internal.*\"}),\r\n          \"display_name\", \"monitoring\", \"instance\", \"(.*)\"\r\n        )\r\n      )\r\n    )\r\n  )\r\n)",
           "legendFormat": "{{display_name}}",
           "range": true,
           "refId": "A"
@@ -796,7 +796,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "(\r\n  # 1. 쿠버네티스 노드들 처리 (web-숫자, master, db 자동 구분)\r\n  100 - (\r\n    avg by (display_name) (\r\n      label_replace(\r\n        label_replace(\r\n          (node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"})\r\n          * on(instance) group_left(label_node_role, node)\r\n          # 조인을 위한 instance 라벨 포맷 매칭\r\n          label_replace(label_replace(kube_node_labels, \"instance\", \"$1.$2.$3.$4:9100\", \"node\", \"ip-([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)\"), \"instance\", \"$1:9100\", \"node\", \"^(([0-9]+\\\\.){3}[0-9]+)$\"),\r\n          \r\n          # [핵심] node 라벨에서 마지막 IP 숫자 추출하여 web-90 등 생성\r\n          \"display_name\", \"web-$1\", \"node\", \"ip-[0-9]+-[0-9]+-[0-9]+-([0-9]+)\"\r\n        ),\r\n        # master나 db는 번호 없이 이름 그대로 표시\r\n        \"display_name\", \"$1\", \"label_node_role\", \"(master|db)\"\r\n      )\r\n    ) * 100\r\n  )\r\n)\r\nOR\r\n(\r\n  # 2. 모니터링 서버 처리 (외부 노드)\r\n  100 - (\r\n    avg by (display_name) (\r\n      label_replace(\r\n        (node_filesystem_avail_bytes{mountpoint=\"/\", instance=~\"host.docker.internal.*\"} / node_filesystem_size_bytes{mountpoint=\"/\", instance=~\"host.docker.internal.*\"}),\r\n        \"display_name\", \"monitoring\", \"instance\", \"(.*)\"\r\n      )\r\n    ) * 100\r\n  )\r\n)",
+          "expr": "(\r\n  # 1. 쿠버네티스 노드들 처리 (라벨링 적용)\r\n  100 - (\r\n    avg by (display_name) (\r\n      label_replace(\r\n        # 디스크 여유 공간 비율 계산\r\n        (node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"})\r\n        # 조인을 위해 instance 라벨 형식을 맞추는 로직\r\n        * on(instance) group_left(label_alias) \r\n        label_replace(\r\n          label_replace(kube_node_labels, \"instance\", \"$1.$2.$3.$4:9100\", \"node\", \"ip-([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)\"),\r\n          \"instance\", \"$1:9100\", \"node\", \"^(([0-9]+\\\\.){3}[0-9]+)$\"\r\n        ),\r\n        \r\n        # [수정] 조인된 label_alias를 display_name으로 바로 사용 (web-숫자 추출 방식 제거)\r\n        \"display_name\", \"$1\", \"label_alias\", \"(.+)\"\r\n      )\r\n    ) * 100\r\n  )\r\n)\r\nOR\r\n(\r\n  # 2. 모니터링 서버 처리 (외부 노드)\r\n  100 - (\r\n    avg by (display_name) (\r\n      label_replace(\r\n        (node_filesystem_avail_bytes{mountpoint=\"/\", instance=~\"host.docker.internal.*\"} / node_filesystem_size_bytes{mountpoint=\"/\", instance=~\"host.docker.internal.*\"}),\r\n        \"display_name\", \"monitoring\", \"instance\", \"(.*)\"\r\n      )\r\n    ) * 100\r\n  )\r\n)",
           "legendFormat": "{{display_name}}",
           "range": true,
           "refId": "A"
@@ -1227,7 +1227,7 @@
         {
           "editorMode": "code",
           "exemplar": false,
-          "expr": "(\r\n  # 1. 쿠버네티스 노드들 처리 (web-숫자, master, db 자동 구분)\r\n  sum by (display_name) (\r\n    label_replace(\r\n      label_replace(\r\n        rate(node_network_receive_bytes_total{device=~\"ens5|eth.*\"}[5m]) * 8 / 1000000\r\n        * on(instance) group_left(label_node_role, node) \r\n        # 조인을 위한 instance 라벨 포맷 매칭\r\n        label_replace(label_replace(kube_node_labels, \"instance\", \"$1.$2.$3.$4:9100\", \"node\", \"ip-([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)\"), \"instance\", \"$1:9100\", \"node\", \"^(([0-9]+\\\\.){3}[0-9]+)$\"),\r\n        \r\n        # [핵심] node 라벨에서 마지막 IP 숫자 추출하여 web-90 등 생성\r\n        \"display_name\", \"web-$1\", \"node\", \"ip-[0-9]+-[0-9]+-[0-9]+-([0-9]+)\"\r\n      ),\r\n      # master나 db는 번호 없이 이름 그대로 표시\r\n      \"display_name\", \"$1\", \"label_node_role\", \"(master|db)\"\r\n    )\r\n  )\r\n)\r\nOR\r\n(\r\n  # 2. 모니터링 서버 처리 (외부 노드)\r\n  sum by (display_name) (\r\n    label_replace(\r\n      rate(node_network_receive_bytes_total{instance=~\"host.docker.internal.*\"}[5m]) * 8 / 1000000,\r\n      \"display_name\", \"monitoring\", \"instance\", \"(.*)\"\r\n    )\r\n  )\r\n)",
+          "expr": "(\r\n  # 1. 쿠버네티스 노드들 처리 (라벨링 적용)\r\n  sum by (display_name) (\r\n    label_replace(\r\n      # 네트워크 수신 속도 계산 (Bytes -> Mbps 변환)\r\n      rate(node_network_receive_bytes_total{device=~\"ens5|eth.*\"}[5m]) * 8 / 1000000\r\n      # 조인을 위해 instance 라벨 형식을 맞추는 로직 유지\r\n      * on(instance) group_left(label_alias) \r\n      label_replace(\r\n        label_replace(kube_node_labels, \"instance\", \"$1.$2.$3.$4:9100\", \"node\", \"ip-([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)\"),\r\n        \"instance\", \"$1:9100\", \"node\", \"^(([0-9]+\\\\.){3}[0-9]+)$\"\r\n      ),\r\n      \r\n      # [수정] 조인된 label_alias를 display_name으로 사용 (web-숫자 추출 방식 제거)\r\n      \"display_name\", \"$1\", \"label_alias\", \"(.+)\"\r\n    )\r\n  )\r\n)\r\nOR\r\n(\r\n  # 2. 모니터링 서버 처리 (외부 노드)\r\n  sum by (display_name) (\r\n    label_replace(\r\n      rate(node_network_receive_bytes_total{instance=~\"host.docker.internal.*\"}[5m]) * 8 / 1000000,\r\n      \"display_name\", \"monitoring\", \"instance\", \"(.*)\"\r\n    )\r\n  )\r\n)",
           "format": "time_series",
           "instant": false,
           "interval": "",
@@ -1386,7 +1386,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "(\r\n  # 1. 쿠버네티스 노드들 처리 (web-숫자, master, db 자동 구분)\r\n  sum by (display_name) (\r\n    label_replace(\r\n      label_replace(\r\n        rate(node_network_transmit_bytes_total{device=\"ens5\"}[5m]) * 8 / 1000000\r\n        * on(instance) group_left(label_node_role, node)\r\n        # 조인을 위한 instance 라벨 포맷 매칭\r\n        label_replace(label_replace(kube_node_labels, \"instance\", \"$1.$2.$3.$4:9100\", \"node\", \"ip-([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)\"), \"instance\", \"$1:9100\", \"node\", \"^(([0-9]+\\\\.){3}[0-9]+)$\"),\r\n        \r\n        # [핵심] node 라벨에서 마지막 IP 숫자 추출하여 web-90 등 생성\r\n        \"display_name\", \"web-$1\", \"node\", \"ip-[0-9]+-[0-9]+-[0-9]+-([0-9]+)\"\r\n      ),\r\n      # master나 db는 번호 없이 이름 그대로 표시\r\n      \"display_name\", \"$1\", \"label_node_role\", \"(master|db)\"\r\n    )\r\n  )\r\n)\r\nOR\r\n(\r\n  # 2. 모니터링 서버 처리 (외부 노드)\r\n  sum by (display_name) (\r\n    label_replace(\r\n      rate(node_network_transmit_bytes_total{instance=~\"host.docker.internal.*\"}[5m]) * 8 / 1000000,\r\n      \"display_name\", \"monitoring\", \"instance\", \"(.*)\"\r\n    )\r\n  )\r\n)",
+          "expr": "(\r\n  # 1. 쿠버네티스 노드들 처리 (라벨링 적용)\r\n  sum by (display_name) (\r\n    label_replace(\r\n      # 네트워크 송신 속도 계산 (Bytes -> Mbps 변환)\r\n      rate(node_network_transmit_bytes_total{device=\"ens5\"}[5m]) * 8 / 1000000\r\n      # 조인을 위해 instance 라벨 형식을 맞추는 로직 유지\r\n      * on(instance) group_left(label_alias) \r\n      label_replace(\r\n        label_replace(kube_node_labels, \"instance\", \"$1.$2.$3.$4:9100\", \"node\", \"ip-([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)\"),\r\n        \"instance\", \"$1:9100\", \"node\", \"^(([0-9]+\\\\.){3}[0-9]+)$\"\r\n      ),\r\n      \r\n      # [수정] 조인된 label_alias를 display_name으로 바로 사용 (web-숫자 추출 방식 제거)\r\n      \"display_name\", \"$1\", \"label_alias\", \"(.+)\"\r\n    )\r\n  )\r\n)\r\nOR\r\n(\r\n  # 2. 모니터링 서버 처리 (외부 노드)\r\n  sum by (display_name) (\r\n    label_replace(\r\n      rate(node_network_transmit_bytes_total{instance=~\"host.docker.internal.*\"}[5m]) * 8 / 1000000,\r\n      \"display_name\", \"monitoring\", \"instance\", \"(.*)\"\r\n    )\r\n  )\r\n)",
           "legendFormat": "{{display_name}}",
           "range": true,
           "refId": "A"
@@ -1828,7 +1828,7 @@
   "timepicker": {},
   "timezone": "browser",
   "title": "Custom Dashboard",
-  "uid": "ad7htwq",
-  "version": 21,
+  "uid": "adzvc52",
+  "version": 5,
   "weekStart": ""
 }
