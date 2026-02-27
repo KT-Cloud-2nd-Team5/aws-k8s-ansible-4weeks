@@ -7,10 +7,3 @@ proxy_url: "http://{{ proxy_server_ip }}:{{ proxy_port }}"
 
 # 프록시를 거치지 않을 내부 통신 대역
 no_proxy_list: "127.0.0.1,localhost,10.0.0.0/16,.svc,.cluster.local"
-
-server_aliases:
-  "10.0.2.235:9100": "Master Node"
-  "10.0.1.90:9100": "Web Node-01"
-  "10.0.1.206:9100": "Web Node-02"
-  "10.0.2.222:9100": "DB Node"
-  "host.docker.internal:9100": "Bastion Host"

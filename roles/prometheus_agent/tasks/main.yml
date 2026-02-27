@@ -68,12 +68,6 @@
     values:
       deploymentMode: agent
 
-      global:
-        external_labels:
-          # ansible_host 기반 별칭 매핑 (실패 시 인벤토리 호스트명 사용)
-          alias: "{{ server_aliases[ansible_host + ':9100'] | default(inventory_hostname) }}"
-          instance: "{{ inventory_hostname }}:9100"
-
       server:
         enabled: true
         persistentVolume:
