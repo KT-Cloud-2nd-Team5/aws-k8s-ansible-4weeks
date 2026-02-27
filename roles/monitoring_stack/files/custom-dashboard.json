@@ -59,56 +59,7 @@
           },
           "unit": "short"
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "10.0.2.235"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Master Node"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "10.0.2.222"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "DB Node"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "10.0.3.206"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Web Node1"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "10.0.1.90"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Web Node2"
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -145,8 +96,8 @@
             "uid": "my-prometheus"
           },
           "editorMode": "code",
-          "expr": "max(\r\n  label_replace(\r\n    label_replace(\r\n      label_replace(\r\n        label_replace(\r\n          kube_node_status_condition{condition=\"Ready\", status=\"true\"},\r\n          \"node\", \"$1\", \"node\", \"ip-(.*)\"\r\n        ),\r\n        \"node\", \"$1.$2\", \"node\", \"([0-9]+)-([0-9]+.*)\"\r\n      ),\r\n      \"node\", \"$1.$2\", \"node\", \"([0-9]+\\\\.[0-9]+)-([0-9]+.*)\"\r\n    ),\r\n    \"node\", \"$1.$2\", \"node\", \"([0-9]+\\\\.[0-9]+\\\\.[0-9]+)-([0-9]+.*)\"\r\n  )\r\n) by (node)\r\n",
-          "legendFormat": "__auto",
+          "expr": "max(\r\n    label_replace(\r\n      label_replace(\r\n        kube_node_status_condition{condition=\"Ready\", status=\"true\"} \r\n        * on(node) group_left(label_node_role) \r\n        kube_node_labels,\r\n        \r\n        # [핵심] node 라벨(ip-10-0-x-90)에서 마지막 숫자(90)를 추출해 web-90 등으로 생성\r\n        \"display_name\", \"web-$1\", \"node\", \"ip-[0-9]+-[0-9]+-[0-9]+-([0-9]+)\"\r\n      ),\r\n      # label_node_role이 master나 db인 경우 해당 이름을 그대로 사용 (web-번호 덮어쓰기)\r\n      \"display_name\", \"$1\", \"label_node_role\", \"(master|db)\"\r\n    )\r\n  ) by (display_name)",
+          "legendFormat": "{{display_name}}",
           "range": true,
           "refId": "A"
         }
@@ -242,6 +193,9 @@
       },
       "fieldConfig": {
         "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -258,32 +212,7 @@
           },
           "unit": "short"
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "ip-10-0-1-90"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Web Node1"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "ip-10-0-3-206"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Web Node2"
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -317,8 +246,8 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "count by (node) (kube_pod_info{pod=~\"web-nginx.*\"})",
-          "legendFormat": "__auto",
+          "expr": "count by (display_name) (\r\n  label_replace(\r\n    kube_pod_info{pod=~\"web-nginx.*\"} \r\n    * on(node) group_left(label_node_role) \r\n    kube_node_labels,\r\n    \r\n    # [핵심] node 라벨(ip-10-0-x-90)에서 마지막 숫자(90)를 추출해 web-90 등으로 생성\r\n    \"display_name\", \"web-$1\", \"node\", \"ip-[0-9]+-[0-9]+-[0-9]+-([0-9]+)\"\r\n  )\r\n)",
+          "legendFormat": "{{display_name}}",
           "range": true,
           "refId": "A"
         }
@@ -613,68 +542,7 @@
             ]
           }
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "10.0.3.206:9100"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Web Node2"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "10.0.1.90:9100"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Web Node1"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "10.0.2.222:9100"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "DB Node"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "10.0.2.235:9100"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Master Node"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "host.docker.internal:9100"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Bastion Host"
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 7,
@@ -700,8 +568,8 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "100 - (avg by (instance) (\r\n  rate(node_cpu_seconds_total{mode=\"idle\"}[5m])\r\n) * 100)",
-          "legendFormat": "__auto",
+          "expr": "(\r\n  # 1. 쿠버네티스 노드들 처리 (web-숫자, master, db 자동 구분)\r\n  100 - (\r\n    avg by (display_name) (\r\n      label_replace(\r\n        label_replace(\r\n          rate(node_cpu_seconds_total{mode=\"idle\"}[5m])\r\n          * on(instance) group_left(label_node_role, node)\r\n          # 조인을 위해 instance 라벨 형식 맞추기\r\n          label_replace(label_replace(kube_node_labels, \"instance\", \"$1.$2.$3.$4:9100\", \"node\", \"ip-([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)\"), \"instance\", \"$1:9100\", \"node\", \"^(([0-9]+\\\\.){3}[0-9]+)$\"),\r\n          \r\n          # [핵심] node 라벨(ip-10-0-x-90)에서 마지막 숫자(90)를 추출해 web-90 등으로 생성\r\n          \"display_name\", \"web-$1\", \"node\", \"ip-[0-9]+-[0-9]+-[0-9]+-([0-9]+)\"\r\n        ),\r\n        # label_node_role이 master나 db인 경우 해당 이름을 그대로 사용 (web-번호 덮어쓰기)\r\n        \"display_name\", \"$1\", \"label_node_role\", \"(master|db)\"\r\n      )\r\n    ) * 100\r\n  )\r\n)\r\nOR\r\n(\r\n  # 2. 모니터링 서버 처리 (외부 노드)\r\n  100 - (\r\n    avg by (display_name) (\r\n      label_replace(\r\n        rate(node_cpu_seconds_total{mode=\"idle\", instance=~\"host.docker.internal.*\"}[5m]),\r\n        \"display_name\", \"monitoring\", \"instance\", \"(.*)\"\r\n      )\r\n    ) * 100\r\n  )\r\n)",
+          "legendFormat": "{{display_name}}",
           "range": true,
           "refId": "A"
         }
@@ -769,68 +637,7 @@
           },
           "unit": "percent"
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "10.0.3.206:9100"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Web Node2"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "10.0.1.90:9100"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Web Node1"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "10.0.2.222:9100"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "DB Nodes"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "10.0.2.235:9100"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Master Node"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "host.docker.internal:9100"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Bastion Host"
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 7,
@@ -856,8 +663,8 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "100 * (\r\n  1 - (avg by (instance) (\r\n    node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes\r\n  ))\r\n)",
-          "legendFormat": "__auto",
+          "expr": "(\r\n  # 1. 쿠버네티스 노드들 처리 (web-숫자, master, db 자동 구분)\r\n  100 * (\r\n    1 - (\r\n      avg by (display_name) (\r\n        label_replace(\r\n          label_replace(\r\n            (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)\r\n            * on(instance) group_left(label_node_role, node)\r\n            # 조인을 위해 instance 라벨 형식 맞추기\r\n            label_replace(label_replace(kube_node_labels, \"instance\", \"$1.$2.$3.$4:9100\", \"node\", \"ip-([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)\"), \"instance\", \"$1:9100\", \"node\", \"^(([0-9]+\\\\.){3}[0-9]+)$\"),\r\n            \r\n            # [핵심] node 라벨(ip-10-0-x-90)에서 마지막 숫자(90)를 추출해 web-90 등으로 생성\r\n            \"display_name\", \"web-$1\", \"node\", \"ip-[0-9]+-[0-9]+-[0-9]+-([0-9]+)\"\r\n          ),\r\n          # label_node_role이 master나 db인 경우 해당 이름을 그대로 사용\r\n          \"display_name\", \"$1\", \"label_node_role\", \"(master|db)\"\r\n        )\r\n      )\r\n    )\r\n  )\r\n)\r\nOR\r\n(\r\n  # 2. 모니터링 서버 처리 (외부 노드)\r\n  100 * (\r\n    1 - (\r\n      avg by (display_name) (\r\n        label_replace(\r\n          (node_memory_MemAvailable_bytes{instance=~\"host.docker.internal.*\"} / node_memory_MemTotal_bytes{instance=~\"host.docker.internal.*\"}),\r\n          \"display_name\", \"monitoring\", \"instance\", \"(.*)\"\r\n        )\r\n      )\r\n    )\r\n  )\r\n)",
+          "legendFormat": "{{display_name}}",
           "range": true,
           "refId": "A"
         }
@@ -989,8 +796,8 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "100 - (\r\n  avg by (instance) (\r\n    node_filesystem_avail_bytes{\r\n      mountpoint=\"/\", \r\n      fstype=\"ext4\", \r\n      device=~\"/dev/root\"\r\n    } / \r\n    node_filesystem_size_bytes{\r\n      mountpoint=\"/\", \r\n      fstype=\"ext4\", \r\n      device=~\"/dev/root\"\r\n    }\r\n  ) * 100\r\n)\r\n",
-          "legendFormat": "__auto",
+          "expr": "(\r\n  # 1. 쿠버네티스 노드들 처리 (web-숫자, master, db 자동 구분)\r\n  100 - (\r\n    avg by (display_name) (\r\n      label_replace(\r\n        label_replace(\r\n          (node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"})\r\n          * on(instance) group_left(label_node_role, node)\r\n          # 조인을 위한 instance 라벨 포맷 매칭\r\n          label_replace(label_replace(kube_node_labels, \"instance\", \"$1.$2.$3.$4:9100\", \"node\", \"ip-([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)\"), \"instance\", \"$1:9100\", \"node\", \"^(([0-9]+\\\\.){3}[0-9]+)$\"),\r\n          \r\n          # [핵심] node 라벨에서 마지막 IP 숫자 추출하여 web-90 등 생성\r\n          \"display_name\", \"web-$1\", \"node\", \"ip-[0-9]+-[0-9]+-[0-9]+-([0-9]+)\"\r\n        ),\r\n        # master나 db는 번호 없이 이름 그대로 표시\r\n        \"display_name\", \"$1\", \"label_node_role\", \"(master|db)\"\r\n      )\r\n    ) * 100\r\n  )\r\n)\r\nOR\r\n(\r\n  # 2. 모니터링 서버 처리 (외부 노드)\r\n  100 - (\r\n    avg by (display_name) (\r\n      label_replace(\r\n        (node_filesystem_avail_bytes{mountpoint=\"/\", instance=~\"host.docker.internal.*\"} / node_filesystem_size_bytes{mountpoint=\"/\", instance=~\"host.docker.internal.*\"}),\r\n        \"display_name\", \"monitoring\", \"instance\", \"(.*)\"\r\n      )\r\n    ) * 100\r\n  )\r\n)",
+          "legendFormat": "{{display_name}}",
           "range": true,
           "refId": "A"
         }
@@ -1420,11 +1227,11 @@
         {
           "editorMode": "code",
           "exemplar": false,
-          "expr": "rate(node_network_receive_bytes_total{device=~\"ens5|eth.*\"}[5m]) * 8 / 1000000",
+          "expr": "(\r\n  # 1. 쿠버네티스 노드들 처리 (web-숫자, master, db 자동 구분)\r\n  sum by (display_name) (\r\n    label_replace(\r\n      label_replace(\r\n        rate(node_network_receive_bytes_total{device=~\"ens5|eth.*\"}[5m]) * 8 / 1000000\r\n        * on(instance) group_left(label_node_role, node) \r\n        # 조인을 위한 instance 라벨 포맷 매칭\r\n        label_replace(label_replace(kube_node_labels, \"instance\", \"$1.$2.$3.$4:9100\", \"node\", \"ip-([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)\"), \"instance\", \"$1:9100\", \"node\", \"^(([0-9]+\\\\.){3}[0-9]+)$\"),\r\n        \r\n        # [핵심] node 라벨에서 마지막 IP 숫자 추출하여 web-90 등 생성\r\n        \"display_name\", \"web-$1\", \"node\", \"ip-[0-9]+-[0-9]+-[0-9]+-([0-9]+)\"\r\n      ),\r\n      # master나 db는 번호 없이 이름 그대로 표시\r\n      \"display_name\", \"$1\", \"label_node_role\", \"(master|db)\"\r\n    )\r\n  )\r\n)\r\nOR\r\n(\r\n  # 2. 모니터링 서버 처리 (외부 노드)\r\n  sum by (display_name) (\r\n    label_replace(\r\n      rate(node_network_receive_bytes_total{instance=~\"host.docker.internal.*\"}[5m]) * 8 / 1000000,\r\n      \"display_name\", \"monitoring\", \"instance\", \"(.*)\"\r\n    )\r\n  )\r\n)",
           "format": "time_series",
           "instant": false,
           "interval": "",
-          "legendFormat": "{{instance}} 수신",
+          "legendFormat": "{{display_name}}",
           "range": true,
           "refId": "A"
         }
@@ -1579,8 +1386,8 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "rate(node_network_transmit_bytes_total{device=\"ens5\"}[5m]) * 8 / 1000000",
-          "legendFormat": "{{instance}} 송신",
+          "expr": "(\r\n  # 1. 쿠버네티스 노드들 처리 (web-숫자, master, db 자동 구분)\r\n  sum by (display_name) (\r\n    label_replace(\r\n      label_replace(\r\n        rate(node_network_transmit_bytes_total{device=\"ens5\"}[5m]) * 8 / 1000000\r\n        * on(instance) group_left(label_node_role, node)\r\n        # 조인을 위한 instance 라벨 포맷 매칭\r\n        label_replace(label_replace(kube_node_labels, \"instance\", \"$1.$2.$3.$4:9100\", \"node\", \"ip-([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)\"), \"instance\", \"$1:9100\", \"node\", \"^(([0-9]+\\\\.){3}[0-9]+)$\"),\r\n        \r\n        # [핵심] node 라벨에서 마지막 IP 숫자 추출하여 web-90 등 생성\r\n        \"display_name\", \"web-$1\", \"node\", \"ip-[0-9]+-[0-9]+-[0-9]+-([0-9]+)\"\r\n      ),\r\n      # master나 db는 번호 없이 이름 그대로 표시\r\n      \"display_name\", \"$1\", \"label_node_role\", \"(master|db)\"\r\n    )\r\n  )\r\n)\r\nOR\r\n(\r\n  # 2. 모니터링 서버 처리 (외부 노드)\r\n  sum by (display_name) (\r\n    label_replace(\r\n      rate(node_network_transmit_bytes_total{instance=~\"host.docker.internal.*\"}[5m]) * 8 / 1000000,\r\n      \"display_name\", \"monitoring\", \"instance\", \"(.*)\"\r\n    )\r\n  )\r\n)",
+          "legendFormat": "{{display_name}}",
           "range": true,
           "refId": "A"
         }
@@ -1647,20 +1454,7 @@
             ]
           }
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "10.42.3.30:9104"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "DB Node"
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -1687,7 +1481,7 @@
         {
           "editorMode": "code",
           "expr": "mysql_global_status_threads_connected",
-          "legendFormat": "{{instance}}",
+          "legendFormat": "MySQL",
           "range": true,
           "refId": "A"
         }
@@ -1754,20 +1548,7 @@
             ]
           }
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "10.42.3.30:9104"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "DB Node"
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -1794,7 +1575,7 @@
         {
           "editorMode": "code",
           "expr": "mysql_global_status_threads_running",
-          "legendFormat": "{{instance}}",
+          "legendFormat": "MySQL",
           "range": true,
           "refId": "A"
         }
@@ -1901,7 +1682,7 @@
         {
           "editorMode": "code",
           "expr": "rate(mysql_global_status_queries[5m])\r\n",
-          "legendFormat": "{{instance}}",
+          "legendFormat": "MySQL",
           "range": true,
           "refId": "A"
         }
@@ -1998,7 +1779,7 @@
         {
           "editorMode": "code",
           "expr": "rate(mysql_global_status_slow_queries{container=\"mysql-exporter\"}[5m]) or vector(0)",
-          "legendFormat": "db-mysql-0",
+          "legendFormat": "MySQL",
           "range": true,
           "refId": "A"
         }
@@ -2011,7 +1792,34 @@
   "schemaVersion": 42,
   "tags": [],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "my-prometheus"
+        },
+        "definition": "label_values(up,$node_role)",
+        "includeAll": true,
+        "label": "Server Role",
+        "multi": true,
+        "name": "node_role",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(up,$node_role)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "regexApplyTo": "value",
+        "sort": 1,
+        "type": "query"
+      }
+    ]
   },
   "time": {
     "from": "now-15m",
@@ -2020,7 +1828,7 @@
   "timepicker": {},
   "timezone": "browser",
   "title": "Custom Dashboard",
-  "uid": "ad7r9wd",
-  "version": 2,
+  "uid": "ad7htwq",
+  "version": 21,
   "weekStart": ""
 }
