@@ -166,3 +166,31 @@ groups:
           summary: "📈 디스크 고갈 위험 예측: {{ '{{' }} $labels.instance {{ '}}' }}"
         notification_settings:
           receiver: Discord-Alert
+
+# --- 6. Nginx HPA ---
+      - uid: dfed4cmzlv5s0c
+        title: 'nginx hpa '
+        condition: C
+        for: 1m
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: my-prometheus
+            model:
+              expr: kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler="web-nginx-hpa"}
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: A
+              type: threshold
+              refId: C
+              conditions:
+                - evaluator: { params: [2], type: gt }
+                  operator: { type: and }
+                  reducer: { type: last }
+                  type: query
+        annotations:
+          description: 'Nginx 파드 수가 늘어났습니다. 현재 복제본 수: {{ $values.A.Value }}개.'
+          summary: "🚀 Nginx 스케일 아웃 감지 (HPA 작동)"
