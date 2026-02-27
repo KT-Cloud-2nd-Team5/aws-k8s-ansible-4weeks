@@ -7,10 +7,3 @@ proxy_url: "http://{{ proxy_server_ip }}:{{ proxy_port }}"
 
 # 프록시를 거치지 않을 내부 통신 대역
 no_proxy_list: "127.0.0.1,localhost,10.0.0.0/16,.svc,.cluster.local"
-
-server_aliases:
-  "k3s-master": "Master Node"
-  "k3s-web-01": "Web Node-01"
-  "k3s-web-02": "Web Node-02"
-  "k3s-db-01": "DB Node"
-  "my-bastion": "Bastion Host"
