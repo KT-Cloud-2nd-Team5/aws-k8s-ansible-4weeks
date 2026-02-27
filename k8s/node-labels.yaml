@@ -8,7 +8,7 @@ metadata:
 apiVersion: v1
 kind: Node
 metadata:
-  name: ip-10-0-1-144
+  name: ip-10-0-3-206
   labels:
     node-role: web
 ---
