@@ -71,15 +71,16 @@
       # 차트 버전에 따라 global 경로를 직접 참조하는 경우 대비
       global:
         external_labels:
-          alias: "{{ server_aliases[ansible_host + ':9100'] | default(inventory_hostname) }}"
+          # inventory_hostname(k3s-master 등)을 키로 사용하여 별칭을 찾습니다.
+          alias: "{{ server_aliases[inventory_hostname] | default(inventory_hostname) }}"
+          # instance 라벨은 실제 식별을 위해 IP:Port 형식을 유지합니다.
           instance: "{{ ansible_host }}:9100"
 
       server:
         enabled: true
-        # 실제 prometheus.yml의 global 섹션을 생성하는 핵심 경로
         global:
           external_labels:
-            alias: "{{ server_aliases[ansible_host + ':9100'] | default(inventory_hostname) }}"
+            alias: "{{ server_aliases[inventory_hostname] | default(inventory_hostname) }}"
             instance: "{{ ansible_host }}:9100"
 
         persistentVolume:
