@@ -99,8 +99,3 @@
     remove_orphans: true
     recreate: always
     pull: always
-
-# 8. Grafana 안정화 대기
-- name: Grafana 서비스 안정화 대기 (30초)
-  pause:
-    seconds: 30

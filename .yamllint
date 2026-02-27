@@ -1,0 +1,7 @@
+extends: default
+
+rules:
+  document-start: disable  # --- 생략 허용
+  line-length:
+    max: 120  # 80→120자
+  comments: disable  # 주석 공백 무시
