@@ -1,23 +1,23 @@
 apiVersion: 1
 
-# 1. 알림 전송 채널 설정 (Discord)
+# 1. 알림 전송 채널 설정
 contactPoints:
   - orgId: 1
-    name: 'Discord-Alert'
+    name: Discord-Alert
     receivers:
       - uid: discord_receiver_1
         type: discord
         settings:
-          url: "{{ alert_webhook_url }}"
+          url: '{{ alert_webhook_url }}'
 
 # 2. 알림 라우팅 정책
 policies:
   - orgId: 1
-    receiver: 'Discord-Alert'
-    group_by: ['alertname', 'instance']
-    group_wait: '30s'
-    group_interval: '5m'
-    repeat_interval: '4h'
+    receiver: Discord-Alert
+    group_by: [alertname, nodename]
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 4h
 
 # 3. 알림 규칙 통합 정의
 groups:
@@ -26,190 +26,210 @@ groups:
     folder: alert
     interval: 1m
     rules:
-      # --- 1. 서버 다운 알림 ---
-      - uid: dfed1dhwqv0u8c
-        title: server down
+      # --- 1. 서버 다운 알람 ---
+      - uid: server_health_check_uid
+        title: Server Down Alert
         condition: C
-        data:
-          - refId: A
-            relativeTimeRange: { from: 600, to: 0 }
-            datasourceUid: my-prometheus
-            model:
-              expr: sum by (instance) (up)
-              refId: A
-          - refId: B
-            datasourceUid: __expr__
-            model: { expression: A, reducer: last, type: reduce, refId: B }
-          - refId: C
-            datasourceUid: __expr__
-            model:
-              expression: B
-              type: threshold
-              refId: C
-              conditions:
-                - evaluator: { params: [0.5], type: lt }
-                  operator: { type: and }
-                  query: { params: [B] }
-                  reducer: { type: last }
-                  type: query
-        noDataState: NoData
-        execErrState: OK
         for: 1m
-        annotations:
-          description: '서버 {{ '{{' }} $labels.instance {{ '}}' }} 가 1분 이상 응답하지 않습니다.'
-          summary: >-
-            ❌ 서버 다운 감지: 
-            {{ '{{' }} if eq $labels.instance "10.0.2.235:9100" {{ '}}' }} Master Node
-            {{ '{{' }} else if eq $labels.instance "10.0.1.90:9100" {{ '}}' }} Web Node-01
-            {{ '{{' }} else if eq $labels.instance "10.0.3.206:9100" {{ '}}' }} Web Node-02
-            {{ '{{' }} else if eq $labels.instance "10.0.2.222:9100" {{ '}}' }} DB Node
-            {{ '{{' }} else {{ '}}' }} {{ '{{' }} $labels.instance {{ '}}' }} {{ '{{' }} end {{ '}}' }}
-
-      # --- 2. CPU 고부하 알림 ---
-      - uid: efed2c4iollhca
-        title: cpu 고부하
-        condition: C
         data:
           - refId: A
-            relativeTimeRange: { from: 600, to: 0 }
+            relativeTimeRange: {from: 600, to: 0}
             datasourceUid: my-prometheus
             model:
-              expr: 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
-              refId: A
+              expr: |
+                avg by (alias, node) (
+                  label_replace(label_replace(avg by (instance, alias) (up{job="kubernetes-nodes"}), "node", "$1", "instance", "ip-([0-9-]+)"), "node", "$1.$2.$3.$4", "node", "([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)")
+                  or label_replace(label_replace(avg by (instance) (up{job="monitoring-server-node"}), "alias", "monitoring-server", "", ""), "node", "$1", "instance", "([^:]+):.*")
+                )
           - refId: B
             datasourceUid: __expr__
-            model: { expression: A, reducer: last, type: reduce, refId: B }
+            model: {expression: A, reducer: last, type: reduce}
           - refId: C
             datasourceUid: __expr__
             model:
               expression: B
               type: threshold
-              refId: C
               conditions:
-                - evaluator: { params: [80], type: gt }
-                  operator: { type: and }
-                  query: { params: [B] }
-                  reducer: { type: last }
+                - evaluator: {params: [1], type: lt}
+                  operator: {type: and}
+                  query: {params: [B]}
+                  reducer: {type: last}
                   type: query
-        for: 5m
         annotations:
-          description: '서버 {{ '{{' }} $labels.instance {{ '}}' }} CPU 사용량 80% 초과 (현재: {{ '{{' }} $values.B.Value | printf "%.2f" {{ '}}' }}%)'
-          summary: >-
-            🔥 CPU 부하 경고: 
-            {{ '{{' }} if eq $labels.instance "10.0.2.235:9100" {{ '}}' }} Master Node
-            {{ '{{' }} else if eq $labels.instance "10.0.1.90:9100" {{ '}}' }} Web Node-01
-            {{ '{{' }} else if eq $labels.instance "10.0.3.206:9100" {{ '}}' }} Web Node-02
-            {{ '{{' }} else if eq $labels.instance "10.0.2.222:9100" {{ '}}' }} DB Node
-            {{ '{{' }} else {{ '}}' }} {{ '{{' }} $labels.instance {{ '}}' }} {{ '{{' }} end {{ '}}' }}
+          summary: "🚨 서버 다운 감지: {{ '{{' }} $labels.alias {{ '}}' }}"
+          description: "대상 서버: {{ '{{' }} $labels.alias {{ '}}' }} (IP: {{ '{{' }} $labels.node {{ '}}' }})\n서버의 응답이 없습니다. 상태를 확인하세요."
+
+      # --- 2. CPU 사용량 위험 ---
+      - uid: cpu_usage_alert_uid
+        title: CPU 사용량 위험
+        condition: C
+        for: 1m
+        data:
+          - refId: A
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: my-prometheus
+            model:
+              expr: |
+                100 - (
+                  avg by (alias, node) (
+                    label_replace(irate(node_cpu_seconds_total{mode="idle"}[5m]), "node", "$1", "instance", "([^:]+):.*")
+                    * on(node) group_left(alias) (
+                      label_replace(label_replace(avg by (instance, alias) (up{job="kubernetes-nodes"}), "node", "$1", "instance", "ip-([0-9-]+)"), "node", "$1.$2.$3.$4", "node", "([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)")
+                      or label_replace(label_replace(avg by (instance) (up{job="monitoring-server-node"}), "alias", "monitoring-server", "", ""), "node", "$1", "instance", "([^:]+):.*")
+                    )
+                  ) * 100
+                )
+          - refId: B
+            datasourceUid: __expr__
+            model: {expression: A, reducer: last, type: reduce}
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: B
+              type: threshold
+              conditions:
+                - evaluator: {params: [80], type: gt}
+                  operator: {type: and}
+                  query: {params: [B]}
+                  reducer: {type: last}
+                  type: query
+        annotations:
+          summary: "🔥 CPU 과부하 경고: {{ '{{' }} $labels.alias {{ '}}' }}"
+          description: "대상 서버: {{ '{{' }} $labels.alias {{ '}}' }} (IP: {{ '{{' }} $labels.node {{ '}}' }})\n현재 CPU 사용률: {{ '{{' }} $values.B.Value | printf \"%.2f\" {{ '}}' }}%"
 
       # --- 3. 메모리 사용량 위험 ---
       - uid: dfed2g53d16gwf
         title: memory 사용량 위험
         condition: C
+        for: 5m
         data:
           - refId: A
-            relativeTimeRange: { from: 600, to: 0 }
+            relativeTimeRange: {from: 600, to: 0}
             datasourceUid: my-prometheus
             model:
-              expr: sum by (instance) ((node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100)
-              refId: A
+              expr: |
+                avg by (alias, node) (
+                  label_replace((node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100, "node", "$1", "instance", "([^:]+):.*")
+                  * on(node) group_left(alias) (
+                    label_replace(label_replace(avg by (instance, alias) (up{job="kubernetes-nodes"}), "node", "$1", "instance", "ip-([0-9-]+)"), "node", "$1.$2.$3.$4", "node", "([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)")
+                    or label_replace(label_replace(avg by (instance) (up{job="monitoring-server-node"}), "alias", "monitoring-server", "", ""), "node", "$1", "instance", "([^:]+):.*")
+                  )
+                )
           - refId: B
             datasourceUid: __expr__
-            model: { expression: A, reducer: last, type: reduce, refId: B }
+            model: {expression: A, reducer: last, type: reduce}
           - refId: C
             datasourceUid: __expr__
-            model: { expression: B, type: threshold, refId: C, conditions: [{ evaluator: { params: [90], type: gt }, operator: { type: and }, query: { params: [B] }, reducer: { type: last }, type: query }] }
-        for: 5m
+            model:
+              expression: B
+              type: threshold
+              conditions:
+                - evaluator: {params: [90], type: gt}
+                  operator: {type: and}
+                  query: {params: [B]}
+                  reducer: {type: last}
+                  type: query
         annotations:
-          description: '서버 {{ '{{' }} $labels.instance {{ '}}' }} 메모리 사용률 90% 초과 (현재: {{ '{{' }} $values.B.Value | printf "%.2f" {{ '}}' }}%)'
-          summary: >-
-            ⚠️ 메모리 부족 경고: 
-            {{ '{{' }} if eq $labels.instance "10.0.2.235:9100" {{ '}}' }} Master Node
-            {{ '{{' }} else if eq $labels.instance "10.0.1.90:9100" {{ '}}' }} Web Node-01
-            {{ '{{' }} else if eq $labels.instance "10.0.3.206:9100" {{ '}}' }} Web Node-02
-            {{ '{{' }} else if eq $labels.instance "10.0.2.222:9100" {{ '}}' }} DB Node
-            {{ '{{' }} else {{ '}}' }} {{ '{{' }} $labels.instance {{ '}}' }} {{ '{{' }} end {{ '}}' }}
+          summary: "⚠️ [메모리 부족] {{ '{{' }} $labels.alias {{ '}}' }}"
+          description: "대상 서버: {{ '{{' }} $labels.alias {{ '}}' }} (IP: {{ '{{' }} $labels.node {{ '}}' }})\n현재 메모리 사용률: {{ '{{' }} $values.B.Value | printf \"%.2f\" {{ '}}' }}%"
 
-      # --- 4. 디스크 공간 부족 ---
-      - uid: ffed2k5iwo9vkf
-        title: disk 공간 부족
+      # --- 4. 디스크 용량 부족 위험 ---
+      - uid: disk_usage_alert_uid
+        title: "disk 사용량 위험"
         condition: C
+        for: 2m
         data:
           - refId: A
-            relativeTimeRange: { from: 600, to: 0 }
+            relativeTimeRange: {from: 600, to: 0}
             datasourceUid: my-prometheus
             model:
-              expr: sum by (instance) (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} * 100)
-              refId: A
+              expr: |
+                avg by (alias, node) (
+                  label_replace((node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100, "node", "$1", "instance", "([^:]+):.*")
+                  * on(node) group_left(alias) (
+                    label_replace(label_replace(avg by (instance, alias) (up{job="kubernetes-nodes"}), "node", "$1", "instance", "ip-([0-9-]+)"), "node", "$1.$2.$3.$4", "node", "([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)")
+                    or label_replace(label_replace(avg by (instance) (up{job="monitoring-server-node"}), "alias", "monitoring-server", "", ""), "node", "$1", "instance", "([^:]+):.*")
+                  )
+                )
           - refId: B
             datasourceUid: __expr__
-            model: { expression: A, reducer: last, type: reduce, refId: B }
+            model: {expression: A, reducer: last, type: reduce}
           - refId: C
             datasourceUid: __expr__
-            model: { expression: B, type: threshold, refId: C, conditions: [{ evaluator: { params: [15], type: lt }, operator: { type: and }, query: { params: [B] }, reducer: { type: last }, type: query }] }
-        for: 5m
+            model:
+              expression: B
+              type: threshold
+              conditions:
+                - evaluator: {params: [20], type: lt}
+                  operator: {type: and}
+                  query: {params: [B]}
+                  reducer: {type: last}
+                  type: query
         annotations:
-          description: '서버 {{ '{{' }} $labels.instance {{ '}}' }} 루트(/) 파티션 여유 공간 15% 미만 (현재: {{ '{{' }} $values.B.Value | printf "%.2f" {{ '}}' }}%)'
-          summary: >-
-            💾 디스크 공간 부족: 
-            {{ '{{' }} if eq $labels.instance "10.0.2.235:9100" {{ '}}' }} Master Node
-            {{ '{{' }} else if eq $labels.instance "10.0.1.90:9100" {{ '}}' }} Web Node-01
-            {{ '{{' }} else if eq $labels.instance "10.0.3.206:9100" {{ '}}' }} Web Node-02
-            {{ '{{' }} else if eq $labels.instance "10.0.2.222:9100" {{ '}}' }} DB Node
-            {{ '{{' }} else {{ '}}' }} {{ '{{' }} $labels.instance {{ '}}' }} {{ '{{' }} end {{ '}}' }}
+          summary: "⚠️ 디스크 용량 부족 경고: {{ '{{' }} $labels.alias {{ '}}' }}"
+          description: "대상 서버: {{ '{{' }} $labels.alias {{ '}}' }}\n남은 공간: {{ '{{' }} $values.B.Value | printf \"%.2f\" {{ '}}' }}%"
 
       # --- 5. 디스크 고갈 예측 ---
-      - uid: cfed2o22ji41sd
-        title: disk 고갈 예측
+      - uid: disk_prediction_alert_uid
+        title: "disk 고갈 예측 (24시간 내)"
         condition: C
+        for: 5m
         data:
           - refId: A
-            relativeTimeRange: { from: 3600, to: 0 }
+            relativeTimeRange: {from: 3600, to: 0}
             datasourceUid: my-prometheus
             model:
-              expr: sum by (instance) (predict_linear(node_filesystem_free_bytes{mountpoint="/"}[1h], 24 * 3600))
-              refId: A
+              expr: |
+                sum by (alias, node) (
+                  label_replace(predict_linear(node_filesystem_free_bytes{mountpoint="/"}[1h], 24 * 3600), "node", "$1", "instance", "([^:]+):.*")
+                  * on(node) group_left(alias) (
+                    label_replace(label_replace(avg by (instance, alias) (up{job="kubernetes-nodes"}), "node", "$1", "instance", "ip-([0-9-]+)"), "node", "$1.$2.$3.$4", "node", "([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)")
+                    or label_replace(label_replace(avg by (instance) (up{job="monitoring-server-node"}), "alias", "monitoring-server", "", ""), "node", "$1", "instance", "([^:]+):.*")
+                  )
+                )
           - refId: B
             datasourceUid: __expr__
-            model: { expression: A, reducer: last, type: reduce, refId: B }
+            model: {expression: A, reducer: last, type: reduce}
           - refId: C
             datasourceUid: __expr__
-            model: { expression: B, type: threshold, refId: C, conditions: [{ evaluator: { params: [0], type: lt }, operator: { type: and }, query: { params: [B] }, reducer: { type: last }, type: query }] }
-        for: 10m
+            model:
+              expression: B
+              type: threshold
+              conditions:
+                - evaluator: {params: [0], type: lt}
+                  operator: {type: and}
+                  query: {params: [B]}
+                  reducer: {type: last}
+                  type: query
         annotations:
-          description: '서버 {{ '{{' }} $labels.instance {{ '}}' }} 의 현재 디스크 사용 추세로 볼 때 24시간 이내 고갈 예측됩니다.'
-          summary: >-
-            📈 디스크 고갈 위험 예측: 
-            {{ '{{' }} if eq $labels.instance "10.0.2.235:9100" {{ '}}' }} Master Node
-            {{ '{{' }} else if eq $labels.instance "10.0.1.90:9100" {{ '}}' }} Web Node-01
-            {{ '{{' }} else if eq $labels.instance "10.0.3.206:9100" {{ '}}' }} Web Node-02
-            {{ '{{' }} else if eq $labels.instance "10.0.2.222:9100" {{ '}}' }} DB Node
-            {{ '{{' }} else {{ '}}' }} {{ '{{' }} $labels.instance {{ '}}' }} {{ '{{' }} end {{ '}}' }}
+          summary: "🚨 디스크 고갈 예측: {{ '{{' }} $labels.alias {{ '}}' }}"
+          description: "서버 {{ '{{' }} $labels.alias {{ '}}' }}의 디스크가 24시간 이내 고갈될 예정입니다."
 
       # --- 6. Nginx HPA ---
       - uid: dfed4cmzlv5s0c
-        title: 'nginx hpa '
+        title: "nginx hpa"
         condition: C
         for: 1m
         data:
           - refId: A
-            relativeTimeRange: { from: 600, to: 0 }
+            relativeTimeRange: {from: 600, to: 0}
             datasourceUid: my-prometheus
             model:
-              expr: kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler="web-nginx-hpa"}
-              instant: true
-              refId: A
+              expr: "kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler='web-nginx-hpa', namespace='default'}"
+          - refId: B
+            datasourceUid: __expr__
+            model: {expression: A, reducer: last, type: reduce}
           - refId: C
             datasourceUid: __expr__
             model:
-              expression: A
+              expression: B
               type: threshold
-              refId: C
               conditions:
-                - evaluator: { params: [2], type: gt }
-                  operator: { type: and }
-                  reducer: { type: last }
+                - evaluator: {params: [2], type: gt}
+                  operator: {type: and}
+                  query: {params: [B]}
+                  reducer: {type: last}
                   type: query
         annotations:
-          description: 'Nginx 파드 수가 늘어났습니다. 현재 복제본 수: {{ '{{' }} $values.A.Value {{ '}}' }}개.'
-          summary: "🚀 Nginx 스케일 아웃 감지 (HPA 작동)"
+          summary: "🚀 Nginx 스케일 아웃 감지 ({{ '{{' }} $labels.horizontalpodautoscaler {{ '}}' }})"
+          description: "현재 복제본 수: {{ '{{' }} $values.B.Value | printf \"%.0f\" {{ '}}' }}개"
