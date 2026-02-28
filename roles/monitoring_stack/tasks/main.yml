@@ -61,6 +61,16 @@
       }
     - { src: "alerting.yml.j2", dest: "provisioning/alerting/alerting.yml" }
 
+- name: 메시지 디자인 템플릿 배포
+  become: true
+  copy:
+    src: "discord_template.yaml"
+    dest: "{{ monitoring_dir }}/provisioning/alerting/discord_template.yaml"
+    owner: "{{ target_user | default('ubuntu') }}"
+    group: "{{ target_user | default('ubuntu') }}"
+    mode: "0644"
+    force: true
+
 # 5. Grafana Labs 공식 대시보드 다운로드
 - name: Grafana Labs에서 공식 대시보드 다운로드
   become: true
