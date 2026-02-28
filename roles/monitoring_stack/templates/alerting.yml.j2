@@ -9,6 +9,7 @@ contactPoints:
         type: discord
         settings:
           url: '{{ alert_webhook_url }}'
+          message: "{{ '{{' }} template \"discord_template_group\" . {{ '}}' }}"
 
 # 2. 알림 라우팅 정책
 policies:
