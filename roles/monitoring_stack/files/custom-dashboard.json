@@ -540,7 +540,8 @@
                 "value": 80
               }
             ]
-          }
+          },
+          "unit": "percent"
         },
         "overrides": []
       },
@@ -1828,7 +1829,7 @@
   "timepicker": {},
   "timezone": "browser",
   "title": "Custom Dashboard",
-  "uid": "adzvc52",
-  "version": 5,
+  "uid": "ad9hclg",
+  "version": 2,
   "weekStart": ""
 }
