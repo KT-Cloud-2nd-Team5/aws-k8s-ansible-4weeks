@@ -2,7 +2,6 @@
 # roles/k3s_worker/tasks/main.yml
 - name: Install K3s agent and join cluster (optimized proxy)
   become: true
-  environment: "{{ proxy_env }}"
   shell: |
     set -eu
 

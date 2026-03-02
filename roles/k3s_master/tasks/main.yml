@@ -3,7 +3,6 @@
 
 - name: Install K3s server on master (optimized proxy)
   become: true
-  environment: "{{ proxy_env }}"
   shell: |
     set -eu
 
