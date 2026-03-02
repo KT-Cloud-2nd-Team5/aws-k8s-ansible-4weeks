@@ -51,6 +51,7 @@
     kubectl label node {{ ansible_hostname }} alias={{ inventory_hostname }} --overwrite
   delegate_to: "{{ groups['master'][0] }}"
 
+
 # 8. 에이전트 배포
 - name: Prometheus Agent 배포
   become: true
