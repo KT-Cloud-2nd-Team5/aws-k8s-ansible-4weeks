@@ -64,11 +64,46 @@
     values:
       deploymentMode: agent
 
-      # 1. 전역 라벨 설정 (에이전트 자체 식별용)
       global:
         external_labels:
           agent_host: "{{ inventory_hostname }}"
 
       server:
         enabled: true
-        # [핵심
+        retention: "" 
+        persistentVolume:
+          enabled: false
+
+        remoteWrite:
+          - url: "http://{{ proxy_server_ip }}:9090/api/v1/write"
+            write_relabel_configs:
+              - source_labels: [__meta_kubernetes_node_label_alias]
+                target_label: nodename
+                action: replace
+                regex: "(.+)"
+              - source_labels: [nodename]
+                regex: "^$"
+                replacement: "none"
+              - source_labels: [nodename, node]
+                regex: "none;(.+)"
+                target_label: nodename
+                replacement: "$1"
+                action: replace
+              - source_labels: [__meta_kubernetes_node_label_node_role]
+                target_label: role
+                action: replace
+
+        extraArgs:
+          enable-feature: agent
+
+      alertmanager:
+        enabled: false
+      pushgateway:
+        enabled: false
+
+      kube-state-metrics:
+        metricLabelsAllowlist:
+          - nodes=[alias,node-role]
+
+  # 워커 노드는 건너뛰고 오직 'master' 노드에서만 Helm을 실행합니다!
+  when: inventory_hostname in groups['master']
