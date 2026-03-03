@@ -1,28 +1,19 @@
 ---
 # roles/k3s_worker/tasks/main.yml
-- name: Install K3s agent and join cluster (optimized proxy)
+- name: Install K3s agent and join cluster
   become: true
   shell: |
     set -eu
 
-    # Web이든 DB든 알아서 프록시 환경변수(http_proxy 등)를 적용받아 다운로드 성공!
+    # 1. 설치 스크립트 다운로드
     curl -fL https://get.k3s.io -o /tmp/k3s_install.sh
     chmod +x /tmp/k3s_install.sh
 
-    # 마스터 노드 정보 참조하여 조인
-    K3S_URL="https://{{ hostvars[groups['master'][0]].ansible_host }}:6443" \
-    K3S_TOKEN="{{ hostvars[groups['master'][0]].k3s_token }}" \
-    INSTALL_K3S_EXEC="agent" \
+    # 2. 마스터 노드 정보(Private IP) 및 동적 라벨(tags.Role) 주입하여 실행
+    K3S_URL="https://{{ hostvars[groups['master'][0]]['private_ip_address'] }}:6443" \
+    K3S_TOKEN="{{ hostvars[groups['master'][0]]['k3s_token'] }}" \
+    INSTALL_K3S_EXEC="agent --node-label node-role={{ tags.Role }}" \
     /tmp/k3s_install.sh
   args:
     executable: /bin/bash
     creates: /usr/local/bin/k3s-agent
-
-#aws 태그로 쿠버네티스 라벨링
-- name: Run K3s agent installation script
-      shell: |
-        curl -sfL https://get.k3s.io | \
-        K3S_URL="https://{{ hostvars[groups['master'][0]]['private_ip_address'] }}:6443" \
-        K3S_TOKEN="{{ hostvars[groups['master'][0]]['k3s_token'] }}" \
-        INSTALL_K3S_EXEC="agent --node-label node-role={{ tags.Role }}" \
-        sh -
