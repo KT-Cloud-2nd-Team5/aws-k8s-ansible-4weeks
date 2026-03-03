@@ -1,12 +1,14 @@
 ---
 - name: Setup K3s master
   hosts: master
+  environment: "{{ proxy_env }}"
   gather_facts: true
   roles:
     - k3s_master
 
 - name: Setup K3s workers
   hosts: workers
+  environment: "{{ proxy_env }}"
   gather_facts: true
   roles:
     - k3s_worker

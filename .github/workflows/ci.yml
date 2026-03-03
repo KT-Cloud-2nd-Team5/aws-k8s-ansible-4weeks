@@ -23,6 +23,9 @@ jobs:
 
     env:
       DOCKER_IMAGE: "kimkiyeol/web-app"   # DockerHub repo (팀 공용이면 여기만 바꾸면 됨)
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: ap-northeast-2
 
     steps:
       - name: Checkout code
@@ -36,6 +39,12 @@ jobs:
 
       - name: Verify SSH agent
         run: ssh-add -l
+
+      - name: Install Python dependencies for Ansible AWS
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip
+          pip3 install boto3 botocore
 
       - name: Install Docker
         run: |
@@ -81,4 +90,4 @@ jobs:
       #  CD: 방금 푸시한 이미지 태그 그대로 전달
       - name: Deploy (Ansible CD)
         run: |
-          ansible-playbook -i inventory/inventory.ini playbooks/cd.yml
+          ansible-playbook -i inventory/aws_ec2.yml -i inventory/static.ini playbooks/cd.yml

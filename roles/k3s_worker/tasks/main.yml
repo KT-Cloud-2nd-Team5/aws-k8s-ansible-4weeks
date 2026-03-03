@@ -1,23 +1,12 @@
 ---
 # roles/k3s_worker/tasks/main.yml
-
-- name: Install K3s agent and join cluster (dynamic proxy)
+- name: Install K3s agent and join cluster (optimized proxy)
   become: true
   shell: |
     set -eu
-    
-    # 해당 호스트에 proxy_url 변수가 정의되어 있는지 확인 (db 그룹 등)
-    {% if proxy_url is defined and group_names[0] == 'db' %}
-    export http_proxy="{{ proxy_url }}"
-    export https_proxy="{{ proxy_url }}"
-    export no_proxy="{{ no_proxy_list }},{{ hostvars[groups['master'][0]].ansible_host }}"
-    CURL_OPT="--proxy {{ proxy_url }} -4"
-    {% else %}
-    CURL_OPT=""
-    {% endif %}
 
-    # 설치 스크립트 다운로드
-    curl ${CURL_OPT} -fL https://get.k3s.io -o /tmp/k3s_install.sh
+    # Web이든 DB든 알아서 프록시 환경변수(http_proxy 등)를 적용받아 다운로드 성공!
+    curl -fL https://get.k3s.io -o /tmp/k3s_install.sh
     chmod +x /tmp/k3s_install.sh
 
     # 마스터 노드 정보 참조하여 조인

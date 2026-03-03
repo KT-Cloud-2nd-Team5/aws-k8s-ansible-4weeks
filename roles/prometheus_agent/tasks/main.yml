@@ -10,8 +10,6 @@
 - name: Helm 설치 (Proxy 활용)
   become: true
   shell: |
-    export http_proxy="{{ proxy_url }}"
-    export https_proxy="{{ proxy_url }}"
     curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
     chmod 700 get_helm.sh
     ./get_helm.sh
@@ -24,24 +22,17 @@
     url: https://bootstrap.pypa.io/get-pip.py
     dest: /tmp/get-pip.py
     validate_certs: no
-  environment:
-    http_proxy: "{{ proxy_url }}"
-    https_proxy: "{{ proxy_url }}"
+
 
 # 4. 스크립트로 pip 설치 (APT 의존성 제거)
 - name: (우회) pip 설치 실행
   become: true
   shell: python3 /tmp/get-pip.py
-  environment:
-    http_proxy: "{{ proxy_url }}"
-    https_proxy: "{{ proxy_url }}"
 
 # 5. 라이브러리 설치 (방금 설치한 pip 사용)
 - name: (우회) kubernetes 라이브러리 설치
   become: true
   shell: |
-    export http_proxy="{{ proxy_url }}"
-    export https_proxy="{{ proxy_url }}"
     /usr/local/bin/pip3 install kubernetes
   args:
     executable: /bin/bash
@@ -51,9 +42,6 @@
   kubernetes.core.helm_repository:
     name: prometheus-community
     repo_url: "https://prometheus-community.github.io/helm-charts"
-  environment:
-    http_proxy: "{{ proxy_url }}"
-    https_proxy: "{{ proxy_url }}"
 
 # 7 쿠버네티스 노드에 별칭(Alias) 라벨 부여
 - name: K3s 노드에 관리용 별칭 라벨 추가 (Shell 사용)
@@ -62,11 +50,7 @@
     # kubectl 명령어로 직접 라벨링 (이미 있으면 덮어쓰기)
     kubectl label node {{ ansible_hostname }} alias={{ inventory_hostname }} --overwrite
   delegate_to: "{{ groups['master'][0] }}"
-  environment:
-    # 마스터 노드 내부 통신이므로 프록시를 완전히 무력화
-    http_proxy: ""
-    https_proxy: ""
-    no_proxy: "*"
+
 
 # 8. 에이전트 배포
 - name: Prometheus Agent 배포
@@ -136,9 +120,3 @@
   # [에러 해결 포인트] 모든 노드가 아닌 마스터 서버 한 곳에서 딱 한 번만 실행합니다.
   delegate_to: "{{ groups['master'][0] }}"
   run_once: true
-
-  environment:
-    http_proxy: "{{ proxy_url }}"
-    https_proxy: "{{ proxy_url }}"
-    # 마스터 내부 통신 시 프록시 예외 처리
-    no_proxy: "localhost,127.0.0.1,{{ groups['master'][0] }}"
