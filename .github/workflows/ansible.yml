@@ -18,13 +18,16 @@ on:
       - ".github/workflows/ansible.yml"
 
   workflow_dispatch: # 수동 실행 기능
+  
+  repository_dispatch:
+    types: [run-ansible]
 
 jobs:
   ansible-site:
     runs-on: self-hosted # AWS Bastion 서버에서 실행
 
     # workflow_run 트리거일 경우, CI가 성공했을 때만 실행
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'repository_dispatch' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
 
     env:
       ANSIBLE_HOST_KEY_CHECKING: "False"
