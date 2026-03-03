@@ -58,7 +58,6 @@
     chart_ref: prometheus-community/prometheus
     release_namespace: "{{ my_ns | default('monitoring') }}"
     create_namespace: true
-    # [중요] 마스터 노드에 있는 k3s.yaml을 참조합니다.
     kubeconfig: /etc/rancher/k3s/k3s.yaml
     wait: true
     values:
@@ -96,6 +95,13 @@
         extraArgs:
           enable-feature: agent
 
+      # Agent 모드에서는 rule_files와 alerting 설정이 있으면 무조건 크래시 발생
+      # Helm 차트가 강제로 주입하는 설정을 null과 []로 지움
+      serverFiles:
+        prometheus.yml:
+          rule_files: []
+          alerting: null
+
       alertmanager:
         enabled: false
       pushgateway:
@@ -105,5 +111,4 @@
         metricLabelsAllowlist:
           - nodes=[alias,node-role]
 
-  # 워커 노드는 건너뛰고 오직 'master' 노드에서만 Helm을 실행합니다!
   when: inventory_hostname in groups['master']
