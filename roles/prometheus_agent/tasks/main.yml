@@ -23,7 +23,6 @@
     dest: /tmp/get-pip.py
     validate_certs: no
 
-
 # 4. 스크립트로 pip 설치 (APT 의존성 제거)
 - name: (우회) pip 설치 실행
   become: true
@@ -51,7 +50,6 @@
     kubectl label node {{ ansible_hostname }} alias={{ inventory_hostname }} --overwrite
   delegate_to: "{{ groups['master'][0] }}"
 
-
 # 8. 에이전트 배포
 - name: Prometheus Agent 배포
   become: true
@@ -73,50 +71,4 @@
 
       server:
         enabled: true
-        persistentVolume:
-          enabled: false
-
-        # [핵심] 리모트 라이트 시 노드 라벨(alias)을 nodename으로 변환
-        remoteWrite:
-          - url: "http://{{ proxy_server_ip }}:9090/api/v1/write"
-            write_relabel_configs:
-              # 단계 1: 노드에 붙인 'alias' 라벨이 있으면 'nodename' 라벨로 교체
-              - source_labels: [__meta_kubernetes_node_label_alias]
-                target_label: nodename
-                action: replace
-                regex: "(.+)"
-
-              # 단계 2: 'alias'가 없는 경우를 대비해 기존 'node'명(ip-10-...)을 nodename으로 백업
-              - source_labels: [nodename]
-                regex: "^$"
-                replacement: "none"
-              - source_labels: [nodename, node]
-                regex: "none;(.+)"
-                target_label: nodename
-                replacement: "$1"
-                action: replace
-
-              # 단계 3: 노드 역할(web/db) 라벨 주입
-              - source_labels: [__meta_kubernetes_node_label_node_role]
-                target_label: role
-                action: replace
-
-        extraArgs:
-          enable-feature: agent
-
-      # 에이전트 모드이므로 불필요한 기능은 끕니다.
-      alertmanager:
-        enabled: false
-      pushgateway:
-        enabled: false
-
-      retention: 1h
-
-      # [핵심] 노드 라벨을 메트릭으로 노출시켜 에이전트가 읽을 수 있게 함
-      kube-state-metrics:
-        metricLabelsAllowlist:
-          - nodes=[alias,node-role]
-
-  # [에러 해결 포인트] 모든 노드가 아닌 마스터 서버 한 곳에서 딱 한 번만 실행합니다.
-  delegate_to: "{{ groups['master'][0] }}"
-  run_once: true
+        # [핵심
