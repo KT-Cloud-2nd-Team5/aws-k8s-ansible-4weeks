@@ -1,15 +1,14 @@
 ---
-# 베스천 서버 및 공통 접속 정보
 ansible_user: ubuntu
+# [수정됨] 내부망이므로 Proxy 터널링 명령어 삭제, 키 체크만 무시
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 
-# 공통 프록시 서버 정보 변수화
-proxy_server_ip: "10.0.1.74"
+# [수정됨] 동적 그룹인 'bastion'의 첫 번째 Private IP를 프록시 주소로 설정
+proxy_server_ip: "{{ hostvars[groups['bastion'][0]]['private_ip_address'] }}"
 proxy_port: "3128"
 proxy_url: "http://{{ proxy_server_ip }}:{{ proxy_port }}"
 
-# 실제 시스템이나 task에 적용될 프록시 환경 변수
 proxy_env:
   http_proxy: "{{ proxy_url }}"
   https_proxy: "{{ proxy_url }}"
-  no_proxy: "127.0.0.1,localhost,10.0.0.0/16,10.0.2.235,.svc,.cluster.local,{{ ansible_host }}"
+  no_proxy: "127.0.0.1,localhost,10.0.0.0/16,.svc,.cluster.local,{{ ansible_host }}"

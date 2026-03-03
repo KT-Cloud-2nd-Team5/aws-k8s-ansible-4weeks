@@ -17,3 +17,12 @@
   args:
     executable: /bin/bash
     creates: /usr/local/bin/k3s-agent
+
+#aws 태그로 쿠버네티스 라벨링
+- name: Run K3s agent installation script
+      shell: |
+        curl -sfL https://get.k3s.io | \
+        K3S_URL="https://{{ hostvars[groups['master'][0]]['private_ip_address'] }}:6443" \
+        K3S_TOKEN="{{ hostvars[groups['master'][0]]['k3s_token'] }}" \
+        INSTALL_K3S_EXEC="agent --node-label node-role={{ tags.Role }}" \
+        sh -
