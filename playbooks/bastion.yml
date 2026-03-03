@@ -15,9 +15,7 @@
 - name: 중앙 모니터링 서버 구축
   # 호스트 타겟을 monitoring_server에서 bastion으로 변경
   hosts: bastion
-  vars_files:
-    - "../group_vars/all.yml"
-    - "../group_vars/monitoring_server.yml"
+  
   roles:
     - docker
     - monitoring_stack
