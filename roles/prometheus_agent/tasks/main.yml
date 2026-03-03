@@ -80,7 +80,9 @@
                 target_label: nodename
                 action: replace
                 regex: "(.+)"
+              #  타겟 라벨(target_label)이 누락되어 있던 문법 오류 수정!
               - source_labels: [nodename]
+                target_label: nodename  
                 regex: "^$"
                 replacement: "none"
               - source_labels: [nodename, node]
@@ -92,11 +94,8 @@
                 target_label: role
                 action: replace
 
-        extraArgs:
-          enable-feature: agent
+        # 불필요한 extraArgs(에이전트 경고 유발) 삭제 완료
 
-      # Agent 모드에서는 rule_files와 alerting 설정이 있으면 무조건 크래시 발생
-      # Helm 차트가 강제로 주입하는 설정을 null과 []로 지움
       serverFiles:
         prometheus.yml:
           rule_files: []
