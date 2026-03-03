@@ -2,7 +2,7 @@
 # MySQL Exporter Settings
 mysql_user: "exporter"
 mysql_password: "exporter"
-mysql_host: "10.0.2.222"
+mysql_host: "{{ hostvars[groups['db'][0]]['private_ip_address'] }}"
 mysql_port: 3306
 my_ns: "monitoring"
 release_name: "mysql-exporter"

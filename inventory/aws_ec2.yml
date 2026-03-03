@@ -21,3 +21,4 @@ hostnames:
 compose:
   ansible_host: private_ip_address
   ansible_user: ubuntu
+  ansible_connection: "'local' if tags.Role == 'bastion' else 'ssh'"

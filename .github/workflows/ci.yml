@@ -90,4 +90,4 @@ jobs:
       #  CD: 방금 푸시한 이미지 태그 그대로 전달
       - name: Deploy (Ansible CD)
         run: |
-          ansible-playbook -i inventory/aws_ec2.yml -i inventory/static.ini playbooks/cd.yml
+          ansible-playbook -i inventory/aws_ec2.yml playbooks/cd.yml
