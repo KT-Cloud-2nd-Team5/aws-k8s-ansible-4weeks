@@ -5,14 +5,16 @@
   tasks:
     - name: 중앙 서버 IP 고정
       set_fact:
-        target_central_ip: "{{ hostvars[groups['monitoring_server'][0]]['ansible_host'] | default(groups['monitoring_server'][0]) }}"
+        #monitoring_server 대신 aws_ec2가 만든 bastion 그룹의 private_ip_address 참조
+        target_central_ip: "{{ hostvars[groups['bastion'][0]]['private_ip_address'] }}"
       run_once: true
       delegate_to: localhost
       delegate_facts: true
 
 # 2. 중앙 서버 구축
 - name: 중앙 모니터링 서버 구축
-  hosts: monitoring_server
+  # 호스트 타겟을 monitoring_server에서 bastion으로 변경
+  hosts: bastion
   vars_files:
     - "../group_vars/all.yml"
     - "../group_vars/monitoring_server.yml"
@@ -22,7 +24,7 @@
 
 # 3. 타겟 서버들 공통 설정
 - name: 쿠버네티스 에이전트 배포
-  environment: "{{ proxy_env }}"
+  environment: "{{ proxy_env | default({}) }}"
   hosts: master, web, db
   gather_facts: true
   become: true
