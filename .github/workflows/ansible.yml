@@ -8,6 +8,7 @@ on:
       - "hanseo"
       - "iaminpwd"
       - "dynamic"
+      - "optimization"
     paths: # 아래 폴더나 파일이 변경되었을 때만 실행
       - "playbooks/**"
       - "roles/**"
@@ -16,6 +17,7 @@ on:
       - "k8s/**"
       - "ansible.cfg"
       - ".github/workflows/ansible.yml"
+      - "app/**"
 
   workflow_dispatch: # 수동 실행 기능
   
