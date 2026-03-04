@@ -25,3 +25,5 @@ Dockerfile
 # 4. OS 관련 필요없는 파일
 .DS_Store
 Thumbs.db
+  
+  
