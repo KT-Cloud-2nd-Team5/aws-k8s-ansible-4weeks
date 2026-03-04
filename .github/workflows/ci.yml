@@ -5,6 +5,7 @@ on:
     branches:
       - "main"
       - "test-cicd"
+      - "optimization"
     paths:
       - "app/**"
       # CD 코드가 바뀌어도 동작하게 포함(권장)
