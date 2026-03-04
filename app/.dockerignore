@@ -1,0 +1,29 @@
+# 1. 버전 관리 및 기록 (용량 절감 핵심)
+.git/
+.gitignore
+README.md
+
+# 2. 인프라 자동화 관련 (이미지 빌드에 불필요)
+# Terraform 관련 
+.terraform/
+*.tfstate*
+*.tfvars
+.terraform.lock.hcl
+
+# Ansible & K8s 관련 (Nginx 빌드에 필요 없음) 
+*.yml
+*.yaml
+*.retry
+ansible.cfg
+.inventory
+
+# 3. CI/CD 및 설정 관련
+.github/
+Dockerfile
+.dockerignore
+
+# 4. OS 관련 필요없는 파일
+.DS_Store
+Thumbs.db
+  
+
