@@ -92,3 +92,8 @@ jobs:
       - name: Deploy (Ansible CD)
         run: |
           ansible-playbook -i inventory/aws_ec2.yml playbooks/cd.yml
+
+
+
+
+          
