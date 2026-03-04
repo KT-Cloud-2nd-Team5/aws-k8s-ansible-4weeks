@@ -11,7 +11,7 @@ on:
       # CD 코드가 바뀌어도 동작하게 포함(권장)
       - "playbooks/cd.yml"
       - "roles/k8s_deploy/**"
-      - "inventory/**"g
+      - "inventory/**"
       - "ansible.cfg"
 
 concurrency:
