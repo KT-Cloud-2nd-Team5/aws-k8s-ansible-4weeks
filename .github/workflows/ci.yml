@@ -68,7 +68,7 @@ jobs:
       - name: Docker Login
         run: |
           set -e
-          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+          echo "${{ secrets.DOCKER_PASSWORD }}" | sudo docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
       #  여기서 SHORT_SHA 계산 + 다음 step에서 쓰도록 환경변수로 저장
       - name: Prepare image tag
@@ -84,9 +84,9 @@ jobs:
       - name: Build & Push Image (SHORT_SHA)
         run: |
           set -e
-          docker build -t "${DOCKER_IMAGE}:${SHORT_SHA}" -t "${DOCKER_IMAGE}:latest" ./app
-          docker push "${DOCKER_IMAGE}:${SHORT_SHA}"
-          docker push "${DOCKER_IMAGE}:latest"
+          sudo docker build -t "${DOCKER_IMAGE}:${SHORT_SHA}" -t "${DOCKER_IMAGE}:latest" ./app
+          sudo docker push "${DOCKER_IMAGE}:${SHORT_SHA}"
+          sudo docker push "${DOCKER_IMAGE}:latest"
 
       #  CD: 방금 푸시한 이미지 태그 그대로 전달
       - name: Deploy (Ansible CD)
