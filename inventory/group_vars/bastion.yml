@@ -19,7 +19,7 @@ dashboard_ids:
   - { id: 15282, revision: 1 } # K3S cluster monitoring
   - { id: 7362, revision: 5 } # MySQL Overview
 # Discord 또는 Slack에서 만든 Webhook URL
-alert_webhook_url: "https://discord.com/api/webhooks/1468844118750007492/vKKoldUKN4q-olnZFcsg9_7pyxnxbb4snoAhw1VwZLZH-WmZfvo5FLCz9YKQXW8JNxpD"
+alert_webhook_url: ""
 
 # 외부 노출 포트 (NodePort)
 mysql_exporter_node_port: 30104
