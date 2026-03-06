@@ -21,9 +21,6 @@ dashboard_ids:
 # Discord 또는 Slack에서 만든 Webhook URL
 alert_webhook_url: ""
 
-# 외부 노출 포트 (NodePort)
-mysql_exporter_node_port: 30104
-
 server_aliases:
   "{{ hostvars[groups['master'][0]]['private_ip_address'] }}:9100": "Master Node"
   "{{ hostvars['K3s-Web-01']['private_ip_address'] }}:9100": "Web Node-01"
