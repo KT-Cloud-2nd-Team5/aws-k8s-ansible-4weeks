@@ -73,6 +73,35 @@ GitHub Actions와 Self-hosted Runner를 활용하여 Ansible Playbook 실행을 
 
 ---
 
+## Monitoring Stack
+
+### Service Monitoring Dashboard
+
+![Service Monitoring Dashboard](docs/service-monitoring-dashboard.png)
+
+Grafana Dashboard를 통해 Kubernetes 서비스 및 애플리케이션 상태를 실시간으로 모니터링할 수 있도록 구성하였습니다.
+
+* Node 상태 모니터링
+* MySQL 서비스 상태 확인
+* Pod 상태 및 재시작 횟수 모니터링
+* Nginx Replica 상태 확인
+* Network 송수신 모니터링
+
+### Kubernetes Cluster Monitoring
+
+![Cluster Monitoring Dashboard](docs/cluster-monitoring-dashboard.png)
+
+Prometheus를 통해 수집한 메트릭을 기반으로 Kubernetes 클러스터 리소스 사용량을 시각화하였습니다.
+
+* Cluster CPU Usage
+* Cluster Memory Usage
+* Cluster Filesystem Usage
+* Namespace Resource Usage
+* Pod Resource Usage
+* Network I/O Monitoring
+
+---
+
 ## Tech Stack
 
 | Category                 | Technology                |
@@ -128,7 +157,9 @@ GitHub Actions와 Self-hosted Runner를 활용하여 Ansible Playbook 실행을 
 │
 ├── docs
 │   ├── architecture.png
-│   └── ansible-cicd-flow.png
+│   ├── ansible-cicd-flow.png
+│   ├── service-monitoring-dashboard.png
+│   └── cluster-monitoring-dashboard.png
 │
 └── README.md
 ```
@@ -151,9 +182,11 @@ GitHub Actions와 Self-hosted Runner를 활용하여 Ansible Playbook 실행을 
 
 K3s Master 및 Worker Node가 정상적으로 클러스터에 Join 되었으며, Kubernetes 리소스와 모니터링 스택이 정상 배포된 것을 확인하였습니다.
 
-> kubectl get nodes
->
-> kubectl get pods -A
+```bash
+kubectl get nodes
+
+kubectl get pods -A
+```
 
 ---
 
@@ -162,6 +195,6 @@ K3s Master 및 Worker Node가 정상적으로 클러스터에 Join 되었으며,
 * K3s Master / Worker 클러스터 구성 완료
 * Nginx Web 및 MySQL Database 배포 완료
 * GitHub Actions 기반 자동 배포 구성
-* Prometheus & Grafana 모니터링 환경 구축
+* Prometheus & Grafana 기반 모니터링 환경 구축
 * Bastion Host 기반 Private Node 자동 제어 구현
 * Ansible 기반 클러스터 운영 자동화 구현
