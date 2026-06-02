@@ -1,52 +1,167 @@
-# AWS 기반 쿠버네티스 클러스터 + CI/CD 자동화 파이프라인 구축 
-- Terraform과 Ansible을 활용한 인프라 자동화 및 GitHub Actions 기바의 안전한 CD 환경 구현 
+# AWS K3s Cluster Automation with Ansible
 
-# 프로젝트 개요 
-- AWS 클라우드 환경에서 IaC(Infrastructure as Code) 도구를 활용하여 3-Tier 아키텍처(Web-WAS-DB)를 설계하고, Kubernetes(K3s) 기반의 컨테이너 오케스트레이션 환경을 구축하는 것을 목표로 합니다. 또한 단순 배포를 넘어,네트워크 보안 격리(VPC), 형상 관리 자동화(Ansible), 그리고 CI/CD 파이프라인(GitHub Actions)까지를 목표로 삼았습니다.
+Ansible을 활용하여 AWS 환경의 Kubernetes(K3s) 클러스터 구성, 애플리케이션 배포, 모니터링 환경 구축을 자동화한 팀 프로젝트입니다.
 
-# 프로젝트 특징
-- Security First: 모든 워크로드(K3s, DB)는 Private Subnet에 배치하여 외부 접근을 차단하고, Bastion Host와 ALB를 통해서만 접근을 허용합니다.
-- Role Separation: Web(App) 노드와 Data(DB) 노드를 물리적으로 분리하여 단일 장애 지점(SPOF) 위험을 줄이고 리소스 경합을 방지합니다.
+## Architecture
 
-- # 핵심 기술
+![Architecture](docs/architecture.png)
 
-| **기술** | **역할** |
-| --- | --- |
-| **Terraform** | AWS 인프라 자동 생성 (VPC, EC2, 보안 그룹) |
-| **Ansible** | K3s 자동 설치 및 구성 |
-| **K3s** | 쿠버네티스 클러스터 |
-| **GitHub Actions** | CI/CD 자동화 |
-| **Prometheus/Grafana** | 모니터링 대시보드 |
-| **AWS ALB** | 외부 트래픽 분산 |
+본 프로젝트는 Terraform으로 생성된 AWS 인프라를 기반으로, Ansible을 통해 K3s Master/Worker 노드를 구성하고 웹 애플리케이션, 데이터베이스, 모니터링 스택을 자동 배포합니다.
 
- # 기술 스택 및 선정 이유
- | **기술 스택** | **사용 목적** | **선정 이유 (Why)** |
-| --- | --- | --- |
-| **AWS (EC2, VPC)** | Cloud Provider |  **VPC/Subnet/NAT Gateway** 등 실제 엔터프라이즈 네트워크 환경을 가장 유사하게 시뮬레이션하기 위함. |
-| **Terraform** | IaC (Provisioning) | 콘솔 클릭(Click-Ops) 방식의 비효율과 실수 방지. 인프라를 코드로 정의하여 **생성-수정-삭제의 라이프사이클을 명확히 관리**하고 재현성을 확보하기 위함. |
-| **Ansible** | Config Mgmt | Terraform이 만든 Docker, K3s 등을 설치하는 과정을 자동화.  관리가 편하고, 멱등성(Idempotency)을 보장하기 위함. |
-| **Kubernetes (K3s)** | Orchestration | 표준 컨테이너 관리 도구. 학습 및 비용 효율을 위해 CNCF 인증을 받은 경량화 버전(K3s)을 채택하여, 적은 리소스로도 완벽한 K8s 기능을 구현. |
-| **GitHub Actions** | CI/CD | 코드 저장소와 통합된 파이프라인. 특히 **Self-hosted Runner**를 구축하여, 외부에서 접근 불가능한 Private Subnet 내부의 K8s 클러스터에 안전하게 배포하기 위함. |
-| **Prometheus & Grafana** | Monitoring | 클라우드 네이티브 환경의 모니터링 표준. **Pull 방식**의 구조가 동적으로 변하는 컨테이너 환경에 적합하며, 시각화 도구(Grafana)와의 강력한 연동성 때문. |
+---
 
-# 단계벌 구현 계획
-# 1단계: Terraform으로 AWS 인프라 구축
-- VPC, Subnet(Public/Private), IGW, NAT Gateway 등 네트워크 레이어 설계
-- Bastion Host 및 K3s Master/Worker용 EC2 인스턴스 프로비저닝
+## Overview
 
-보안 그룹(SG) 설정 및 SSH Agent Forwarding을 통한 접속 환경 구성
+AWS 클라우드 환경에서 K3s 기반 Kubernetes 클러스터를 자동 구성하고, GitHub Actions 기반 CI/CD와 Prometheus/Grafana 모니터링 환경을 함께 구축하는 것을 목표로 합니다.
 
-# 2단계: Ansible로 K3s 클러스터 설치
-- ProxyCommand를 활용하여 Bastion 경유 Private 노드 제어 설정
-- OS 기본 설정(Swap 비활성화 등) 및 K3s Master/Worker 설치 자동화
-- kubectl get nodes를 통한 클러스터 상태 및 노드 조인 확인
+Bastion Host를 통해 Private Subnet 내부 노드를 제어하며, Ansible Playbook과 Role을 활용하여 Docker 설치, K3s 클러스터 구성, Kubernetes Manifest 적용, 모니터링 스택 배포를 자동화했습니다.
 
-# 3단계: GitHub Actions CI/CD 구축
-- Docker Hub 레지스트리 연동 및 GitHub Secrets 보안 정보 저장
-- Bastion Host 내 Self-hosted Runner 설치 및 배포 권한 설정
-- 코드 Push 시 이미지 빌드부터 클러스터 반영까지의 자동화 파이프라인 완성
+---
 
-# 4단계: 모니터링 및 마무리
-- Helm을 이용한 kube-prometheus-stack 배포 및 메트릭 수집
-- AWS ALB 생성 및 K8s NodePort 서비스 연동을 통한 외부 접속 테스트
-- 실습 종료 후 terraform destroy를 통한 리소스 삭제 및 비용 정리
+## Key Features
+
+### K3s Cluster Automation
+
+* K3s Master Node 자동 설치
+* Worker Node 자동 Join
+* Node Label 자동 적용
+* 클러스터 상태 검증 자동화
+
+### Application Deployment
+
+* Nginx Web Application 배포
+* MySQL Database 배포
+* Kubernetes Manifest 기반 서비스 구성
+* Ingress 기반 트래픽 라우팅
+
+### CI/CD Automation
+
+* GitHub Actions 기반 Ansible 자동 실행
+* Docker Image Build & Push
+* Kubernetes 배포 자동화
+* Bastion Host 기반 Private Node 제어
+
+### Monitoring
+
+* Prometheus Agent 기반 메트릭 수집
+* Grafana Dashboard 구성
+* Discord Webhook 기반 알림 설정
+* 중앙 집중형 모니터링 환경 구축
+
+---
+
+## Workflow
+
+1. Terraform으로 AWS 인프라 생성
+2. Ansible Dynamic Inventory로 대상 노드 조회
+3. Bastion Host를 경유하여 Private Node 접속
+4. Docker 및 K3s 설치
+5. Master / Worker 클러스터 구성
+6. Kubernetes Manifest 적용
+7. Prometheus & Grafana 모니터링 배포
+8. GitHub Actions를 통한 자동화 실행
+
+---
+
+## CI/CD Pipeline
+
+```text
+Developer
+    ↓
+GitHub Repository
+    ↓
+GitHub Actions
+    ↓
+Self-hosted Runner
+    ↓
+Ansible Playbook
+    ↓
+K3s Cluster
+    ↓
+Application / Monitoring Deployment
+```
+
+---
+
+## Tech Stack
+
+| Category                 | Technology                |
+| ------------------------ | ------------------------- |
+| Configuration Management | Ansible                   |
+| Container Platform       | Docker, Kubernetes(K3s)   |
+| CI/CD                    | GitHub Actions            |
+| Application              | Nginx, MySQL              |
+| Monitoring               | Prometheus, Grafana       |
+| Cloud                    | AWS EC2, VPC, ALB         |
+| Inventory                | AWS EC2 Dynamic Inventory |
+
+---
+
+## Repository Structure
+
+```text
+.
+├── .github
+│   └── workflows
+│       ├── ansible.yml
+│       └── ci.yml
+│
+├── app
+│   ├── Dockerfile
+│   └── index.html
+│
+├── inventory
+│   ├── aws_ec2.yml
+│   ├── static.ini
+│   └── group_vars
+│       ├── all.yml
+│       └── bastion.yml
+│
+├── k8s
+│   ├── mysql-db.yaml
+│   ├── nginx-ingress.yaml
+│   └── nginx-web.yaml
+│
+├── playbooks
+│   ├── cd.yml
+│   ├── k3s.yml
+│   ├── k8s_apply.yml
+│   ├── monitoring.yml
+│   └── site.yml
+│
+├── roles
+│   ├── docker
+│   ├── helm
+│   ├── k3s_master
+│   ├── k3s_worker
+│   ├── k8s_deploy
+│   ├── monitoring_stack
+│   └── prometheus_agent
+│
+├── ansible.cfg
+├── docs
+│   └── architecture.png
+└── README.md
+```
+
+---
+
+## Main Playbooks
+
+| Playbook                   | Description            |
+| -------------------------- | ---------------------- |
+| `playbooks/site.yml`       | 전체 자동화 실행              |
+| `playbooks/k3s.yml`        | K3s 클러스터 구성            |
+| `playbooks/k8s_apply.yml`  | Kubernetes Manifest 적용 |
+| `playbooks/monitoring.yml` | Prometheus/Grafana 배포  |
+| `playbooks/cd.yml`         | 애플리케이션 배포 자동화          |
+
+---
+
+## Results
+
+* K3s Master/Worker 클러스터 구성 완료
+* Nginx Web 및 MySQL Database 배포 완료
+* GitHub Actions 기반 자동 배포 구성
+* Prometheus & Grafana 모니터링 환경 구축
+* Bastion Host 기반 Private Node 자동 제어 구현
