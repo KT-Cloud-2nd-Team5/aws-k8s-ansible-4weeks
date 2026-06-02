@@ -158,6 +158,7 @@ Prometheus를 통해 수집한 메트릭을 기반으로 Kubernetes 클러스터
 ├── docs
 │   ├── architecture.png
 │   ├── ansible-cicd-flow.png
+│   ├── cluster-verification.png
 │   ├── service-monitoring-dashboard.png
 │   └── cluster-monitoring-dashboard.png
 │
@@ -180,21 +181,35 @@ Prometheus를 통해 수집한 메트릭을 기반으로 Kubernetes 클러스터
 
 ## Cluster Verification
 
-K3s Master 및 Worker Node가 정상적으로 클러스터에 Join 되었으며, Kubernetes 리소스와 모니터링 스택이 정상 배포된 것을 확인하였습니다.
+![Cluster Verification](docs/cluster-verification.png)
+
+K3s Master 및 Worker Node가 정상적으로 클러스터에 Join 되었으며, 애플리케이션 및 모니터링 리소스가 정상 배포된 것을 확인하였습니다.
+
+* Control Plane(Node Master) 구성 완료
+* Worker Node 3대 정상 Join
+* Nginx Web Application 배포 완료
+* MySQL Database 배포 완료
+* Prometheus Agent 및 Node Exporter 배포 완료
+* Grafana Monitoring Stack 연동 완료
+
+클러스터 검증은 다음 명령어를 통해 수행하였습니다.
 
 ```bash
-kubectl get nodes
+sudo k3s kubectl get nodes
 
-kubectl get pods -A
+kubectl get pods -A -o wide
 ```
 
 ---
 
 ## Results
 
-* K3s Master / Worker 클러스터 구성 완료
+* AWS 기반 K3s 클러스터 구축 완료
+* Ansible 기반 자동 프로비저닝 및 클러스터 구성 자동화
+* GitHub Actions Self-hosted Runner 기반 CI/CD 구축
 * Nginx Web 및 MySQL Database 배포 완료
-* GitHub Actions 기반 자동 배포 구성
 * Prometheus & Grafana 기반 모니터링 환경 구축
-* Bastion Host 기반 Private Node 자동 제어 구현
+* Bastion Host 기반 Private Network 운영 환경 구성
 * Ansible 기반 클러스터 운영 자동화 구현
+
+---
