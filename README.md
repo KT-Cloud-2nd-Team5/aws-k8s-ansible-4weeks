@@ -63,23 +63,13 @@ Bastion Host를 통해 Private Subnet 내부 노드를 제어하며, Ansible Pla
 
 ---
 
-## CI/CD Pipeline
+## Ansible CI/CD Pipeline
 
-```text
-Developer
-    ↓
-GitHub Repository
-    ↓
-GitHub Actions
-    ↓
-Self-hosted Runner
-    ↓
-Ansible Playbook
-    ↓
-K3s Cluster
-    ↓
-Application / Monitoring Deployment
-```
+![Ansible CI/CD](docs/ansible-cicd-flow.png)
+
+GitHub Actions와 Self-hosted Runner를 활용하여 Ansible Playbook 실행을 자동화하였습니다.
+
+코드 변경 시 Workflow가 실행되며 Bastion Host에 구성된 Self-hosted Runner가 Playbook을 수행하여 K3s 클러스터 구성, Kubernetes 리소스 배포 및 모니터링 환경 구축을 자동으로 수행합니다.
 
 ---
 
@@ -114,8 +104,6 @@ Application / Monitoring Deployment
 │   ├── aws_ec2.yml
 │   ├── static.ini
 │   └── group_vars
-│       ├── all.yml
-│       └── bastion.yml
 │
 ├── k8s
 │   ├── mysql-db.yaml
@@ -138,9 +126,10 @@ Application / Monitoring Deployment
 │   ├── monitoring_stack
 │   └── prometheus_agent
 │
-├── ansible.cfg
 ├── docs
-│   └── architecture.png
+│   ├── architecture.png
+│   └── ansible-cicd-flow.png
+│
 └── README.md
 ```
 
@@ -148,20 +137,31 @@ Application / Monitoring Deployment
 
 ## Main Playbooks
 
-| Playbook                   | Description            |
-| -------------------------- | ---------------------- |
-| `playbooks/site.yml`       | 전체 자동화 실행              |
-| `playbooks/k3s.yml`        | K3s 클러스터 구성            |
-| `playbooks/k8s_apply.yml`  | Kubernetes Manifest 적용 |
-| `playbooks/monitoring.yml` | Prometheus/Grafana 배포  |
-| `playbooks/cd.yml`         | 애플리케이션 배포 자동화          |
+| Playbook                   | Description             |
+| -------------------------- | ----------------------- |
+| `playbooks/site.yml`       | 전체 자동화 실행               |
+| `playbooks/k3s.yml`        | K3s 클러스터 구성             |
+| `playbooks/k8s_apply.yml`  | Kubernetes Manifest 적용  |
+| `playbooks/monitoring.yml` | Prometheus / Grafana 배포 |
+| `playbooks/cd.yml`         | 애플리케이션 배포 자동화           |
+
+---
+
+## Cluster Verification
+
+K3s Master 및 Worker Node가 정상적으로 클러스터에 Join 되었으며, Kubernetes 리소스와 모니터링 스택이 정상 배포된 것을 확인하였습니다.
+
+> kubectl get nodes
+>
+> kubectl get pods -A
 
 ---
 
 ## Results
 
-* K3s Master/Worker 클러스터 구성 완료
+* K3s Master / Worker 클러스터 구성 완료
 * Nginx Web 및 MySQL Database 배포 완료
 * GitHub Actions 기반 자동 배포 구성
 * Prometheus & Grafana 모니터링 환경 구축
 * Bastion Host 기반 Private Node 자동 제어 구현
+* Ansible 기반 클러스터 운영 자동화 구현
